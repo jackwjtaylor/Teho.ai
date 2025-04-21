@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect } from "react"
 import TodoInput from "@/components/todo-input"
 import TodoList from "@/components/todo-list"
 import ThemeToggle from "@/components/theme-toggle"
@@ -14,17 +14,6 @@ export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [showCompleted, setShowCompleted] = useState(true)
   const { data: session } = useSession()
-
-  // Collect all unique tags from todos
-  const existingTags = useMemo(() => {
-    const tagSet = new Set<string>()
-    todos.forEach(todo => {
-      if (todo.tags) {
-        todo.tags.forEach(tag => tagSet.add(tag))
-      }
-    })
-    return Array.from(tagSet)
-  }, [todos])
 
   // Load todos from localStorage first, then sync with server if logged in
   useEffect(() => {
@@ -59,21 +48,20 @@ export default function Home() {
     setTodos(prev => [...prev, newTodo])
 
     if (session?.user) {
-      try {
-        const res = await fetch('/api/todos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: todo.title,
-            dueDate: todo.dueDate,
-            urgency: todo.urgency,
-            tags: todo.tags
-          }),
-        })
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: todo.title,
+          dueDate: todo.dueDate,
+          urgency: todo.urgency
+        }),
+      })
         const serverTodo = await res.json()
         setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...serverTodo, comments: [] } : t))
-      } catch (error) {
-        console.error('Failed to add todo:', error)
+    } catch (error) {
+      console.error('Failed to add todo:', error)
       }
     }
   }
@@ -203,7 +191,7 @@ export default function Home() {
             layout="preserve-aspect"
             className={`${filteredTodos.length === 0 ? 'w-full max-w-md' : 'w-full sticky top-4 z-10 mb-8'}`}
           >
-            <TodoInput onAddTodo={addTodo} existingTags={existingTags} />
+            <TodoInput onAddTodo={addTodo} />
           </motion.div>
         </motion.div>
 

@@ -8,7 +8,6 @@ export interface Todo {
   comments: Comment[]
   dueDate?: string
   urgency: number
-  tags: string[]
 }
 
 export interface Comment {

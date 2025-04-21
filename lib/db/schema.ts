@@ -55,7 +55,6 @@ export const todos = pgTable("todos", {
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
     dueDate: text('due_date'),
     urgency: integer('urgency').notNull().default(1),
-    tags: text('tags').array().$type<string[]>(),
 });
 
 export const comments = pgTable("comments", {
