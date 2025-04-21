@@ -2,7 +2,7 @@
 
 import { useState, useRef, type KeyboardEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare } from "lucide-react"
+import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare, User } from "lucide-react"
 import type { Todo, Comment } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
@@ -12,20 +12,54 @@ interface TodoItemProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onAddComment: (todoId: string, comment: Comment) => void
+  onDeleteComment: (todoId: string, commentId: string) => void
 }
 
-export default function TodoItem({ todo, onToggle, onDelete, onAddComment }: TodoItemProps) {
+const getTimeColor = (dateStr: string) => {
+  const dueDate = new Date(dateStr);
+  const now = new Date();
+  const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours <= 6) {
+    return "text-red-500 dark:text-red-400"; // Red for within 6 hours
+  } else if (diffHours <= 24) {
+    return "text-yellow-500 dark:text-yellow-400"; // Yellow for within 24 hours
+  } else {
+    return "text-green-500 dark:text-green-400"; // Green for more than 24 hours
+  }
+};
+
+const formatCommentDate = (dateInput: Date | string) => {
+  const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMins < 1) return 'just now';
+  if (diffMins < 60) return `${diffMins}m ago`;
+  if (diffHours < 24) return `${diffHours}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  
+  return formatDate(date.toISOString());
+};
+
+export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDeleteComment }: TodoItemProps) {
   const [isHovered, setIsHovered] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [commentText, setCommentText] = useState("")
-  const commentInputRef = useRef<HTMLInputElement>(null)
+  const [hoveredCommentId, setHoveredCommentId] = useState<string | null>(null)
+  const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
-  const handleAddComment = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && commentText.trim()) {
+  const handleAddComment = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && !e.shiftKey && commentText.trim()) {
       e.preventDefault()
       const newComment: Comment = {
         id: uuidv4(),
         text: commentText.trim(),
+        todoId: todo.id,
+        userId: todo.userId,
         createdAt: new Date(),
       }
       onAddComment(todo.id, newComment)
@@ -42,6 +76,14 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment }: Tod
       }, 100)
     }
   }
+
+  // Auto-resize textarea as content grows
+  const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const textarea = e.target;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${textarea.scrollHeight}px`;
+    setCommentText(textarea.value);
+  };
 
   return (
     <div
@@ -71,7 +113,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment }: Tod
                     todo.completed ? "line-through text-gray-400 dark:text-white/50" : "text-gray-900 dark:text-white"
                   }`}
                 >
-                  {todo.text}
+                  {todo.title}
                 </p>
 
                 {todo.comments.length > 0 && (
@@ -109,13 +151,17 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment }: Tod
               </div>
             </div>
 
-            <div className="flex items-center mt-1 text-[13px] text-gray-500 dark:text-white/50 space-x-2">
-              {todo.date && <span>{formatDate(todo.date)}</span>}
+            <div className="flex items-center mt-1 text-[13px] space-x-2">
+              {todo.dueDate && (
+                <span className={`${getTimeColor(todo.dueDate)} font-medium`}>
+                  {formatDate(todo.dueDate)}
+                </span>
+              )}
 
               <div className="flex items-center">
-                <span className="mr-1">Urgency:</span>
+                <span className="mr-1 text-gray-500 dark:text-white/50">Urgency:</span>
                 <div className="flex items-center gap-1">
-                  <span className="font-medium">{todo.urgency.toFixed(1)}</span>
+                  <span className="font-medium text-gray-500 dark:text-white/50">{todo.urgency.toFixed(1)}</span>
                   <div className="w-8 h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]"
@@ -135,34 +181,101 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment }: Tod
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="border-t border-gray-200 dark:border-white/10"
+            transition={{ 
+              type: "spring",
+              stiffness: 500,
+              damping: 40,
+              opacity: { duration: 0.2 }
+            }}
+            className="border-t border-gray-200 dark:border-white/10 overflow-hidden"
           >
-            <div className="p-4">
+            <motion.div 
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -10, opacity: 0 }}
+              transition={{ duration: 0.2, delay: 0.1 }}
+              className="p-4"
+            >
               {/* Comments list */}
               {todo.comments.length > 0 && (
-                <div className="mb-3 space-y-2">
+                <motion.div 
+                  className="mb-4 space-y-3"
+                  layout
+                >
                   {todo.comments.map((comment) => (
-                    <div key={comment.id} className="text-[15px] text-gray-700 dark:text-white/80">
-                      <p>{comment.text}</p>
-                    </div>
+                    <motion.div
+                      key={comment.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -10 }}
+                      transition={{ duration: 0.2 }}
+                      className="space-y-1"
+                      onMouseEnter={() => setHoveredCommentId(comment.id)}
+                      onMouseLeave={() => setHoveredCommentId(null)}
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-shrink-0">
+                          <User className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                        </div>
+                        <div className="flex-1">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              {comment.user?.name && (
+                                <motion.div
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  className="text-sm font-medium text-gray-700 dark:text-white/90 mb-0.5"
+                                >
+                                  {comment.user.name}
+                                </motion.div>
+                              )}
+                            </div>
+                            <AnimatePresence>
+                              {hoveredCommentId === comment.id && (
+                                <motion.button
+                                  initial={{ opacity: 0, scale: 0.8 }}
+                                  animate={{ opacity: 1, scale: 1 }}
+                                  exit={{ opacity: 0, scale: 0.8 }}
+                                  transition={{ duration: 0.15 }}
+                                  onClick={() => onDeleteComment(todo.id, comment.id)}
+                                  className="text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white/80 transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </motion.button>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <div className="text-[15px] text-gray-700 dark:text-white/80 whitespace-pre-wrap break-words">
+                            {comment.text}
+                          </div>
+                          <div className="text-xs text-gray-400 dark:text-white/40 mt-1">
+                            {formatCommentDate(comment.createdAt)}
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
                   ))}
-                </div>
+                </motion.div>
               )}
 
               {/* Add comment input */}
-              <div className="flex items-center">
-                <input
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.2 }}
+                className="flex items-start relative"
+              >
+                <textarea
                   ref={commentInputRef}
-                  type="text"
                   value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
+                  onChange={handleTextareaInput}
                   onKeyDown={handleAddComment}
-                  placeholder="Add a comment..."
-                  className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+                  placeholder="Add a comment... (Shift+Enter for new line)"
+                  rows={1}
+                  className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200 resize-none overflow-hidden min-h-[24px] py-0"
                 />
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

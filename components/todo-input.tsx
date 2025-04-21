@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, type KeyboardEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { Todo } from "@/lib/types"
 import { v4 as uuidv4 } from "uuid"
+import { convertRelativeDate } from "@/lib/date-utils"
+import { IOSpinner } from "./spinner"
 
 type InputStep = "text" | "date" | "urgency"
 
@@ -11,6 +13,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
   const [step, setStep] = useState<InputStep>("text")
   const [text, setText] = useState("")
   const [date, setDate] = useState("")
+  const [isDateLoading, setIsDateLoading] = useState(false)
   const [urgency, setUrgency] = useState(3)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
 
@@ -31,10 +34,20 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
     }
   }
 
-  const handleDateKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+  const handleDateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && date.trim()) {
       e.preventDefault()
-      setStep("urgency")
+      setIsDateLoading(true)
+      try {
+        const result = await convertRelativeDate(date.trim())
+        setDate(result.formattedDateTime)
+        setStep("urgency")
+      } catch (error) {
+        console.error("Failed to convert date:", error)
+        // Keep the user in the date input step if there's an error
+      } finally {
+        setIsDateLoading(false)
+      }
     }
   }
 
@@ -79,11 +92,13 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
     if (text.trim()) {
       onAddTodo({
         id: uuidv4(),
-        text,
-        date,
+        title: text,
+        dueDate: date || undefined,
         urgency: Number(urgency.toFixed(1)),
         completed: false,
         createdAt: new Date(),
+        updatedAt: new Date(),
+        userId: '', // This will be set by the API
         comments: [],
       })
 
@@ -121,16 +136,19 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
               >
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">When:</span>
-                  <input
-                    ref={dateInputRef}
-                    type="text"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    onKeyDown={handleDateKeyDown}
-                    placeholder="tomorrow, next week, etc."
-                    className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
-                    disabled={step !== "date"}
-                  />
+                  <div className="flex-1 flex items-center gap-2">
+                    <input
+                      ref={dateInputRef}
+                      type="text"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      onKeyDown={handleDateKeyDown}
+                      placeholder="tomorrow, next week, etc."
+                      className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+                      disabled={step !== "date" || isDateLoading}
+                    />
+                    {isDateLoading && <IOSpinner />}
+                  </div>
                 </div>
               </motion.div>
             )}

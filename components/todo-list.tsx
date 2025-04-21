@@ -9,15 +9,16 @@ interface TodoListProps {
   onToggle: (id: string) => void
   onDelete: (id: string) => void
   onAddComment: (todoId: string, comment: Comment) => void
+  onDeleteComment: (todoId: string, commentId: string) => void
 }
 
-export default function TodoList({ todos, onToggle, onDelete, onAddComment }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment }: TodoListProps) {
   if (todos.length === 0) {
-    return <div className="text-center text-gray-500 mt-8 text-[15px]">No todos yet. Add one above.</div>
+    return null; // We're handling the empty state in the parent component now
   }
 
   return (
-    <div className="space-y-3">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
       <AnimatePresence>
         {todos.map((todo) => (
           <motion.div
@@ -27,7 +28,13 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment }: To
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
           >
-            <TodoItem todo={todo} onToggle={onToggle} onDelete={onDelete} onAddComment={onAddComment} />
+            <TodoItem 
+              todo={todo} 
+              onToggle={onToggle} 
+              onDelete={onDelete} 
+              onAddComment={onAddComment}
+              onDeleteComment={onDeleteComment}
+            />
           </motion.div>
         ))}
       </AnimatePresence>
