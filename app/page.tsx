@@ -48,20 +48,20 @@ export default function Home() {
     setTodos(prev => [...prev, newTodo])
 
     if (session?.user) {
-      try {
-        const res = await fetch('/api/todos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: todo.title,
-            dueDate: todo.dueDate,
-            urgency: todo.urgency
-          }),
-        })
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: todo.title,
+          dueDate: todo.dueDate,
+          urgency: todo.urgency
+        }),
+      })
         const serverTodo = await res.json()
         setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...serverTodo, comments: [] } : t))
-      } catch (error) {
-        console.error('Failed to add todo:', error)
+    } catch (error) {
+      console.error('Failed to add todo:', error)
       }
     }
   }
@@ -75,16 +75,16 @@ export default function Home() {
     ))
 
     if (session?.user) {
-      try {
-        const res = await fetch('/api/todos', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id, completed: !todoToUpdate.completed }),
-        })
-        const updatedTodo = await res.json()
-        setTodos(prev => prev.map(todo => todo.id === id ? updatedTodo : todo))
-      } catch (error) {
-        console.error('Failed to toggle todo:', error)
+    try {
+      const res = await fetch('/api/todos', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, completed: !todoToUpdate.completed }),
+      })
+      const updatedTodo = await res.json()
+      setTodos(prev => prev.map(todo => todo.id === id ? updatedTodo : todo))
+    } catch (error) {
+      console.error('Failed to toggle todo:', error)
       }
     }
   }
@@ -93,14 +93,14 @@ export default function Home() {
     setTodos(prev => prev.filter(todo => todo.id !== id))
 
     if (session?.user) {
-      try {
-        await fetch('/api/todos', {
-          method: 'DELETE',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id }),
-        })
-      } catch (error) {
-        console.error('Failed to delete todo:', error)
+    try {
+      await fetch('/api/todos', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+    } catch (error) {
+      console.error('Failed to delete todo:', error)
       }
     }
   }
@@ -125,23 +125,23 @@ export default function Home() {
     )
 
     if (session?.user) {
-      try {
-        const res = await fetch('/api/todos/comments', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ todoId, text: comment.text }),
-        })
+    try {
+      const res = await fetch('/api/todos/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ todoId, text: comment.text }),
+      })
         const serverComment = await res.json()
-        setTodos(prev =>
-          prev.map(todo => todo.id === todoId ? {
-            ...todo,
+      setTodos(prev =>
+        prev.map(todo => todo.id === todoId ? {
+          ...todo,
             comments: todo.comments.map(c => 
               c.id === newComment.id ? { ...serverComment, createdAt: new Date(serverComment.createdAt) } : c
             )
-          } : todo)
-        )
-      } catch (error) {
-        console.error('Failed to add comment:', error)
+        } : todo)
+      )
+    } catch (error) {
+      console.error('Failed to add comment:', error)
       }
     }
   }

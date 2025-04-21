@@ -220,15 +220,15 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <div>
-                              {comment.user?.name && (
-                                <motion.div
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  className="text-sm font-medium text-gray-700 dark:text-white/90 mb-0.5"
-                                >
-                                  {comment.user.name}
-                                </motion.div>
-                              )}
+                          {comment.user?.name && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="text-sm font-medium text-gray-700 dark:text-white/90 mb-0.5"
+                            >
+                              {comment.user.name}
+                            </motion.div>
+                          )}
                             </div>
                             <AnimatePresence>
                               {hoveredCommentId === comment.id && (
