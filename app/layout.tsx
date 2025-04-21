@@ -4,9 +4,8 @@ import type { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Analytics } from "@vercel/analytics/react"
 export const metadata: Metadata = {
-  title: "Todo App",
-  description: "A minimalistic todo app",
-    generator: 'v0.dev'
+  title: "exon todo",
+  description: "the simplest todo app",
 }
 
 export default function RootLayout({

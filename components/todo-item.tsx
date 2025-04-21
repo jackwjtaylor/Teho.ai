@@ -3,6 +3,7 @@
 import { useState, useRef, type KeyboardEvent } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare, User } from "lucide-react"
+import { FaTags } from "react-icons/fa"
 import type { Todo, Comment } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
@@ -151,7 +152,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
               </div>
             </div>
 
-            <div className="flex items-center mt-1 text-[13px] space-x-2">
+            <div className="flex flex-wrap items-center mt-1 text-[13px] space-x-2">
               {todo.dueDate && (
                 <span className={`${getTimeColor(todo.dueDate)} font-medium`}>
                   {formatDate(todo.dueDate)}
@@ -170,6 +171,22 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   </div>
                 </div>
               </div>
+
+              {todo.tags && todo.tags.length > 0 && (
+                <div className="flex items-center gap-1 mt-1 sm:mt-0">
+                  {todo.tags.map((tag) => (
+                    <motion.div
+                      key={tag}
+                      initial={{ scale: 0.8, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      className="px-2 py-0.5 rounded-full bg-[#7c5aff]/20 text-[#7c5aff] dark:text-white text-xs flex items-center gap-1"
+                    >
+                      <FaTags className="w-3 h-3" />
+                      <span>{tag}</span>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
