@@ -9,6 +9,7 @@ import LoginButton from "@/components/LoginButton"
 import type { Todo, Comment } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/auth-client"
+import { convertOldTodoFormat } from "@/lib/utils"
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
@@ -18,16 +19,68 @@ export default function Home() {
   // Load todos from localStorage first, then sync with server if logged in
   useEffect(() => {
     const localTodos = localStorage.getItem('todos')
+    let initialTodos: Todo[] = []
+
     if (localTodos) {
-      setTodos(JSON.parse(localTodos))
+      try {
+        const parsedTodos = JSON.parse(localTodos)
+        // Check if we need to convert from old format (checking first item for old structure)
+        if (parsedTodos.length > 0 && 'text' in parsedTodos[0]) {
+          initialTodos = parsedTodos.map(convertOldTodoFormat)
+          // Save the converted format back to localStorage
+          localStorage.setItem('todos', JSON.stringify(initialTodos))
+        } else {
+          initialTodos = parsedTodos
+        }
+        setTodos(initialTodos)
+      } catch (error) {
+        console.error('Failed to parse todos from localStorage:', error)
+        // In case of error, start with empty todos
+        // setTodos([])
+      }
     }
 
     if (session?.user) {
       fetch('/api/todos')
         .then(res => res.json())
-        .then(data => {
-          setTodos(data)
-          localStorage.setItem('todos', JSON.stringify(data))
+        .then(remoteTodos => {
+          // Create maps for easier lookup
+          const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
+          const localMap = new Map(initialTodos.map(todo => [todo.id, todo]))
+          
+          // Merge strategy:
+          // 1. Keep all remote todos
+          const mergedTodos = [...remoteTodos]
+          
+          // 2. Add local todos that don't exist on remote
+          const localOnlyTodos = initialTodos.filter(todo => !remoteMap.has(todo.id))
+          
+          // 3. For local-only todos, we need to sync them to the server
+          localOnlyTodos.forEach(async (todo) => {
+            try {
+              const res = await fetch('/api/todos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  title: todo.title,
+                  dueDate: todo.dueDate,
+                  urgency: todo.urgency,
+                  completed: todo.completed
+                }),
+              })
+              const serverTodo = await res.json()
+              // Update the local todo with the server version
+              mergedTodos.push({ ...serverTodo, comments: todo.comments })
+              setTodos([...mergedTodos])
+              localStorage.setItem('todos', JSON.stringify(mergedTodos))
+            } catch (error) {
+              console.error('Failed to sync local todo to server:', error)
+            }
+          })
+
+          // Set initial merged state (will be updated as local todos sync)
+          setTodos(mergedTodos)
+          localStorage.setItem('todos', JSON.stringify(mergedTodos))
         })
         .catch(error => console.error('Failed to fetch todos:', error))
     }
