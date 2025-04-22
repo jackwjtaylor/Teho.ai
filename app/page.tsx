@@ -6,6 +6,7 @@ import TodoList from "@/components/todo-list"
 import ThemeToggle from "@/components/theme-toggle"
 import CompletedToggle from "@/components/completed-toggle"
 import LoginButton from "@/components/LoginButton"
+import FeedbackWidget from "@/components/feedback-widget"
 import type { Todo, Comment } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/auth-client"
@@ -228,6 +229,7 @@ export default function Home() {
       <div className="relative mx-auto mb-4 flex items-center space-x-2 justify-center md:absolute md:top-4 md:right-4 md:mb-0 md:mx-0 md:justify-start">
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
         <ThemeToggle />
+        <FeedbackWidget />
         <LoginButton />
       </div>
 

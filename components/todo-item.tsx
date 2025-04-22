@@ -6,6 +6,7 @@ import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight 
 import type { Todo, Comment } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
+import DeleteConfirmation from "./delete-confirmation"
 
 interface TodoItemProps {
   todo: Todo
@@ -50,6 +51,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
   const [isExpanded, setIsExpanded] = useState(false)
   const [commentText, setCommentText] = useState("")
   const [hoveredCommentId, setHoveredCommentId] = useState<string | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
 
   const handleAddComment = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -92,8 +94,19 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
       onMouseLeave={() => setIsHovered(false)}
     >
       <motion.div 
-        className="flex flex-col"
+        className="flex flex-col relative"
       >
+        <div className="absolute top-2 right-2 z-10">
+          <DeleteConfirmation 
+            isOpen={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={() => {
+              onDelete(todo.id)
+              setShowDeleteConfirm(false)
+            }}
+          />
+        </div>
+
         <div className="p-4 cursor-pointer" onClick={toggleExpand}>
           <div className="flex items-start gap-3">
             <button
@@ -137,7 +150,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                         transition={{ duration: 0.15 }}
                         onClick={(e) => {
                           e.stopPropagation() // Prevent expanding when clicking delete
-                          onDelete(todo.id)
+                          setShowDeleteConfirm(true)
                         }}
                         className="absolute right-6 text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white/80 transition-colors"
                       >
