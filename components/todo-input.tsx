@@ -6,6 +6,7 @@ import type { Todo } from "@/lib/types"
 import { v4 as uuidv4 } from "uuid"
 import { convertRelativeDate } from "@/lib/date-utils"
 import { IOSpinner } from "./spinner"
+import { ArrowRight } from "lucide-react"
 
 type InputStep = "text" | "date" | "urgency"
 
@@ -27,16 +28,14 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
     if (step === "urgency") urgencyInputRef.current?.focus()
   }, [step])
 
-  const handleTextKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && text.trim()) {
-      e.preventDefault()
+  const handleTextSubmit = () => {
+    if (text.trim()) {
       setStep("date")
     }
   }
 
-  const handleDateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" && date.trim()) {
-      e.preventDefault()
+  const handleDateSubmit = async () => {
+    if (date.trim()) {
       setIsDateLoading(true)
       try {
         const result = await convertRelativeDate(date.trim())
@@ -44,10 +43,23 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
         setStep("urgency")
       } catch (error) {
         console.error("Failed to convert date:", error)
-        // Keep the user in the date input step if there's an error
       } finally {
         setIsDateLoading(false)
       }
+    }
+  }
+
+  const handleTextKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && text.trim()) {
+      e.preventDefault()
+      handleTextSubmit()
+    }
+  }
+
+  const handleDateKeyDown = async (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter" && date.trim()) {
+      e.preventDefault()
+      await handleDateSubmit()
     }
   }
 
@@ -114,16 +126,26 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
     <div className="mb-8">
       <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] overflow-hidden transition-colors duration-200">
         <div className="p-4">
-          <input
-            ref={textInputRef}
-            type="text"
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            onKeyDown={handleTextKeyDown}
-            placeholder="What needs to be done?"
-            className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
-            disabled={step !== "text"}
-          />
+          <div className="flex items-center gap-2">
+            <input
+              ref={textInputRef}
+              type="text"
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              onKeyDown={handleTextKeyDown}
+              placeholder="What needs to be done?"
+              className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+              disabled={step !== "text"}
+            />
+            {step === "text" && text.trim() && (
+              <button
+                onClick={handleTextSubmit}
+                className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+              >
+                <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
+              </button>
+            )}
+          </div>
 
           <AnimatePresence>
             {step !== "text" && (
@@ -147,6 +169,14 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                       className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
                       disabled={step !== "date" || isDateLoading}
                     />
+                    {step === "date" && date.trim() && !isDateLoading && (
+                      <button
+                        onClick={handleDateSubmit}
+                        className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                      >
+                        <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
+                      </button>
+                    )}
                     {isDateLoading && <IOSpinner />}
                   </div>
                 </div>
@@ -186,10 +216,18 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                     </div>
                   </div>
                 </div>
-                <div className="mt-1 text-xs text-gray-500 text-right text-[13px]">
-                  {isShiftPressed
-                    ? "Fine tune with ↑↓ (0.1 increments)"
-                    : "Use ↑↓ to adjust, hold Shift for fine-tuning"}
+                <div className="flex items-center justify-between mt-1">
+                  <div className="text-xs text-gray-500 text-[13px]">
+                    {isShiftPressed
+                      ? "Fine tune with ↑↓ (0.1 increments)"
+                      : "Use ↑↓ to adjust, hold Shift for fine-tuning"}
+                  </div>
+                  <button
+                    onClick={submitTodo}
+                    className="md:hidden ml-2 px-3 py-1 bg-[#7c5aff] text-white rounded-full text-sm hover:bg-[#6c47ff] transition-colors"
+                  >
+                    Add Todo
+                  </button>
                 </div>
               </motion.div>
             )}
