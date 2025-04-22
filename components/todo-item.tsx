@@ -236,7 +236,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div>
-                                {comment.user?.name && (
+                                {comment.user?.name && comment.user.name !== 'Local User' && (
                                   <motion.div
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
