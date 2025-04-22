@@ -236,30 +236,32 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                           <div className="flex-1">
                             <div className="flex items-center justify-between">
                               <div>
-                            {comment.user?.name && (
-                              <motion.div
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                className="text-sm font-medium text-gray-700 dark:text-white/90 mb-0.5"
-                              >
-                                {comment.user.name}
-                              </motion.div>
-                            )}
-                              </div>
-                              <AnimatePresence>
-                                {hoveredCommentId === comment.id && (
-                                  <motion.button
-                                    initial={{ opacity: 0, scale: 0.8 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    exit={{ opacity: 0, scale: 0.8 }}
-                                    transition={{ duration: 0.15 }}
-                                    onClick={() => onDeleteComment(todo.id, comment.id)}
-                                    className="text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white/80 transition-colors"
+                                {comment.user?.name && (
+                                  <motion.div
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="text-sm font-medium text-gray-700 dark:text-white/90 mb-0.5"
                                   >
-                                    <Trash2 className="w-4 h-4" />
-                                  </motion.button>
+                                    {comment.user.name}
+                                  </motion.div>
                                 )}
-                              </AnimatePresence>
+                              </div>
+                              <div className="w-4 h-4 flex items-center justify-center">
+                                <AnimatePresence>
+                                  {hoveredCommentId === comment.id && (
+                                    <motion.button
+                                      initial={{ opacity: 0, scale: 0.8 }}
+                                      animate={{ opacity: 1, scale: 1 }}
+                                      exit={{ opacity: 0, scale: 0.8 }}
+                                      transition={{ duration: 0.15 }}
+                                      onClick={() => onDeleteComment(todo.id, comment.id)}
+                                      className="text-gray-400 dark:text-white/50 hover:text-gray-600 dark:hover:text-white/80 transition-colors"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </motion.button>
+                                  )}
+                                </AnimatePresence>
+                              </div>
                             </div>
                             <div className="text-[15px] text-gray-700 dark:text-white/80 whitespace-pre-wrap break-words">
                               {comment.text}
