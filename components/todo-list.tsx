@@ -14,30 +14,92 @@ interface TodoListProps {
 
 export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment }: TodoListProps) {
   if (todos.length === 0) {
-    return null; // We're handling the empty state in the parent component now
+    return null;
   }
 
+  // Split todos into columns
+  const getColumnTodos = (columnIndex: number, columnCount: number) => {
+    return todos.filter((_, index) => index % columnCount === columnIndex);
+  };
+
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-min">
-      <AnimatePresence>
-        {todos.map((todo) => (
-          <motion.div
-            key={todo.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.2 }}
-          >
-            <TodoItem 
-              todo={todo} 
-              onToggle={onToggle} 
-              onDelete={onDelete} 
-              onAddComment={onAddComment}
-              onDeleteComment={onDeleteComment}
-            />
-          </motion.div>
+    <div className="flex flex-col md:flex-row gap-4">
+      {/* Mobile: Single Column */}
+      <div className="flex flex-col gap-4 w-full md:hidden">
+        <AnimatePresence mode="popLayout">
+          {todos.map((todo) => (
+            <motion.div
+              key={todo.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.2 }}
+            >
+              <TodoItem 
+                todo={todo} 
+                onToggle={onToggle} 
+                onDelete={onDelete} 
+                onAddComment={onAddComment}
+                onDeleteComment={onDeleteComment}
+              />
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      {/* Tablet: Two Columns */}
+      <div className="hidden md:flex lg:hidden gap-4 w-full">
+        {[0, 1].map((columnIndex) => (
+          <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+            <AnimatePresence mode="popLayout">
+              {getColumnTodos(columnIndex, 2).map((todo) => (
+                <motion.div
+                  key={todo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TodoItem 
+                    todo={todo} 
+                    onToggle={onToggle} 
+                    onDelete={onDelete} 
+                    onAddComment={onAddComment}
+                    onDeleteComment={onDeleteComment}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
         ))}
-      </AnimatePresence>
+      </div>
+
+      {/* Desktop: Three Columns */}
+      <div className="hidden lg:flex gap-4 w-full">
+        {[0, 1, 2].map((columnIndex) => (
+          <div key={columnIndex} className="flex-1 flex flex-col gap-4">
+            <AnimatePresence mode="popLayout">
+              {getColumnTodos(columnIndex, 3).map((todo) => (
+                <motion.div
+                  key={todo.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <TodoItem 
+                    todo={todo} 
+                    onToggle={onToggle} 
+                    onDelete={onDelete} 
+                    onAddComment={onAddComment}
+                    onDeleteComment={onDeleteComment}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+        ))}
+      </div>
     </div>
-  )
+  );
 }

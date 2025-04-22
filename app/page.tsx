@@ -225,7 +225,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
-      <div className="absolute top-4 right-4 flex items-center space-x-2">
+      <div className="relative mx-auto mb-4 flex items-center space-x-2 justify-center md:absolute md:top-4 md:right-4 md:mb-0 md:mx-0 md:justify-start">
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
         <ThemeToggle />
         <LoginButton />
@@ -238,7 +238,7 @@ export default function Home() {
       >
         <motion.div
           layout="position"
-          className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-8'}`}
+          className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'}`}
         >
           <motion.div
             layout="preserve-aspect"
