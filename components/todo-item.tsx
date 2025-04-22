@@ -110,7 +110,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center justify-between">
-                <div className="flex items-center">
+                <div className="flex items-center w-[85%]">
                   <p
                     className={`text-[15px] font-normal ${
                       todo.completed ? "line-through text-gray-400 dark:text-white/50" : "text-gray-900 dark:text-white"
