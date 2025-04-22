@@ -30,6 +30,12 @@ const getTimeColor = (dateStr: string) => {
   }
 };
 
+const isPastDue = (dateStr: string): boolean => {
+  const dueDate = new Date(dateStr);
+  const now = new Date();
+  return dueDate.getTime() < now.getTime();
+};
+
 const formatCommentDate = (dateInput: Date | string) => {
   const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
   const now = new Date();
@@ -89,7 +95,11 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
   return (
     <div
-      className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] overflow-hidden transition-colors duration-200"
+      className={`bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] overflow-hidden transition-colors duration-200 ${
+        todo.dueDate && isPastDue(todo.dueDate) 
+          ? "bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(255,0,0,0.1)_25%,transparent_25%,transparent_50%,rgba(255,0,0,0.1)_50%,rgba(255,0,0,0.1)_75%,transparent_75%,transparent)] dark:bg-[linear-gradient(45deg,rgba(255,0,0,0.15)_25%,transparent_25%,transparent_50%,rgba(255,0,0,0.15)_50%,rgba(255,0,0,0.15)_75%,transparent_75%,transparent)]"
+          : ""
+      }`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
