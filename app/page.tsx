@@ -3,8 +3,10 @@
 import { useState, useEffect } from "react"
 import TodoInput from "@/components/todo-input"
 import TodoList from "@/components/todo-list"
+import TodoTable from "@/components/todo-table"
 import ThemeToggle from "@/components/theme-toggle"
 import CompletedToggle from "@/components/completed-toggle"
+import ViewToggle from "@/components/view-toggle"
 import LoginButton from "@/components/LoginButton"
 import FeedbackWidget from "@/components/feedback-widget"
 import type { Todo, Comment } from "@/lib/types"
@@ -14,21 +16,27 @@ import { convertOldTodoFormat } from "@/lib/utils"
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
-  const [showCompleted, setShowCompleted] = useState(false) // Default to false
+  const [showCompleted, setShowCompleted] = useState(false)
+  const [isTableView, setIsTableView] = useState(false)
   const { data: session } = useSession()
 
-  // Load showCompleted preference from localStorage on client-side
+  // Load showCompleted and view preference from localStorage on client-side
   useEffect(() => {
     const savedShowCompleted = localStorage.getItem('showCompleted')
+    const savedIsTableView = localStorage.getItem('isTableView')
     if (savedShowCompleted !== null) {
       setShowCompleted(JSON.parse(savedShowCompleted))
     }
+    if (savedIsTableView !== null) {
+      setIsTableView(JSON.parse(savedIsTableView))
+    }
   }, [])
 
-  // Save showCompleted preference whenever it changes
+  // Save preferences whenever they change
   useEffect(() => {
     localStorage.setItem('showCompleted', JSON.stringify(showCompleted))
-  }, [showCompleted])
+    localStorage.setItem('isTableView', JSON.stringify(isTableView))
+  }, [showCompleted, isTableView])
 
   // Load todos from localStorage first, then sync with server if logged in
   useEffect(() => {
@@ -251,6 +259,7 @@ export default function Home() {
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="relative mx-auto mb-4 flex items-center space-x-2 justify-center md:absolute md:top-4 md:right-4 md:mb-0 md:mx-0 md:justify-start">
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
+        <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} />
         <ThemeToggle />
         <FeedbackWidget />
         <LoginButton />
@@ -262,12 +271,12 @@ export default function Home() {
         transition={{ duration: 0.3, ease: "easeInOut" }}
       >
         <motion.div
-          layout="position"
-          className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'}`}
+          initial={false}
+          className="w-full mt-1 md:mt-12"
         >
           <motion.div
-            layout="preserve-aspect"
-            className={`${filteredTodos.length === 0 ? 'w-full max-w-md' : 'w-full sticky top-4 z-10 mb-8'}`}
+            initial={false}
+            className="w-full sticky top-4 z-10 mb-8"
           >
             <TodoInput onAddTodo={addTodo} />
           </motion.div>
@@ -281,14 +290,25 @@ export default function Home() {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.3 }}
             >
-              <TodoList 
-                todos={filteredTodos} 
-                onToggle={toggleTodo} 
-                onDelete={deleteTodo} 
-                onAddComment={addComment}
-                onDeleteComment={deleteComment}
-                onReschedule={rescheduleTodo}
-              />
+              {isTableView ? (
+                <TodoTable
+                  todos={filteredTodos}
+                  onToggle={toggleTodo}
+                  onDelete={deleteTodo}
+                  onAddComment={addComment}
+                  onDeleteComment={deleteComment}
+                  onReschedule={rescheduleTodo}
+                />
+              ) : (
+                <TodoList
+                  todos={filteredTodos}
+                  onToggle={toggleTodo}
+                  onDelete={deleteTodo}
+                  onAddComment={addComment}
+                  onDeleteComment={deleteComment}
+                  onReschedule={rescheduleTodo}
+                />
+              )}
             </motion.div>
           )}
         </AnimatePresence>
