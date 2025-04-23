@@ -164,7 +164,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
                 <div className="flex items-center relative">
                   <AnimatePresence mode="popLayout">
-                    {isHovered && todo.dueDate && isPastDue(todo.dueDate) && (
+                    {isHovered && (
                       <motion.button
                         key="reschedule-button"
                         initial={{ opacity: 0, scale: 0.8 }}

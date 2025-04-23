@@ -14,104 +14,74 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/auth-client"
 import { convertOldTodoFormat } from "@/lib/utils"
 
+const usePersistentState = <T,>(key: string, initialValue: T) => {
+  const [value, setValue] = useState<T>(initialValue)
+
+  // Load initial value from localStorage on mount
+  useEffect(() => {
+    const stored = localStorage.getItem(key)
+    if (stored !== null) {
+      try {
+        setValue(JSON.parse(stored))
+        console.log(`📥 Loaded ${key} from localStorage:`, JSON.parse(stored))
+      } catch (error) {
+        console.error(`❌ Failed to parse stored value for key "${key}":`, error)
+      }
+    }
+  }, [key])
+
+  // Save to localStorage whenever value changes
+  useEffect(() => {
+    console.log(`💾 Saving ${key} to localStorage:`, value)
+    localStorage.setItem(key, JSON.stringify(value))
+  }, [key, value])
+
+  return [value, setValue] as const
+}
+
 export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [showCompleted, setShowCompleted] = useState(false)
-  const [isTableView, setIsTableView] = useState(false)
+  const [todos, setTodos] = usePersistentState<Todo[]>('todos', [])
+  const [showCompleted, setShowCompleted] = usePersistentState('showCompleted', false)
+  const [isTableView, setIsTableView] = usePersistentState('isTableView', false)
   const { data: session } = useSession()
 
-  // Load showCompleted and view preference from localStorage on client-side
+  // Sync with server if logged in
   useEffect(() => {
-    const savedShowCompleted = localStorage.getItem('showCompleted')
-    const savedIsTableView = localStorage.getItem('isTableView')
-    if (savedShowCompleted !== null) {
-      setShowCompleted(JSON.parse(savedShowCompleted))
-    }
-    if (savedIsTableView !== null) {
-      setIsTableView(JSON.parse(savedIsTableView))
-    }
-  }, [])
+    if (!session?.user) return
 
-  // Save preferences whenever they change
-  useEffect(() => {
-    localStorage.setItem('showCompleted', JSON.stringify(showCompleted))
-    localStorage.setItem('isTableView', JSON.stringify(isTableView))
-  }, [showCompleted, isTableView])
-
-  // Load todos from localStorage first, then sync with server if logged in
-  useEffect(() => {
-    const localTodos = localStorage.getItem('todos')
-    let initialTodos: Todo[] = []
-
-    if (localTodos) {
+    const syncWithServer = async () => {
       try {
-        const parsedTodos = JSON.parse(localTodos)
-        // Check if we need to convert from old format (checking first item for old structure)
-        if (parsedTodos.length > 0 && 'text' in parsedTodos[0]) {
-          initialTodos = parsedTodos.map(convertOldTodoFormat)
-          // Save the converted format back to localStorage
-          localStorage.setItem('todos', JSON.stringify(initialTodos))
-        } else {
-          initialTodos = parsedTodos
-        }
-        setTodos(initialTodos)
+        const res = await fetch('/api/todos')
+        const remoteTodos = await res.json()
+        
+        // Find local-only todos
+        const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
+        const localOnlyTodos = todos.filter(todo => !remoteMap.has(todo.id))
+        
+        // Sync local-only todos to server
+        const syncPromises = localOnlyTodos.map(todo => 
+          fetch('/api/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: todo.title,
+              dueDate: todo.dueDate,
+              urgency: todo.urgency,
+              completed: todo.completed
+            }),
+          }).then(res => res.json())
+        )
+
+        const syncedTodos = await Promise.all(syncPromises)
+        const mergedTodos = [...remoteTodos, ...syncedTodos]
+        setTodos(mergedTodos)
       } catch (error) {
-        console.error('Failed to parse todos from localStorage:', error)
-        // In case of error, start with empty todos
-        // setTodos([])
+        console.error('Failed to sync with server:', error)
       }
     }
 
-    if (session?.user) {
-      fetch('/api/todos')
-        .then(res => res.json())
-        .then(remoteTodos => {
-          // Create maps for easier lookup
-          const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
-          const localMap = new Map(initialTodos.map(todo => [todo.id, todo]))
-          
-          // Merge strategy:
-          // 1. Keep all remote todos
-          const mergedTodos = [...remoteTodos]
-          
-          // 2. Add local todos that don't exist on remote
-          const localOnlyTodos = initialTodos.filter(todo => !remoteMap.has(todo.id))
-          
-          // 3. For local-only todos, we need to sync them to the server
-          localOnlyTodos.forEach(async (todo) => {
-            try {
-              const res = await fetch('/api/todos', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  title: todo.title,
-                  dueDate: todo.dueDate,
-                  urgency: todo.urgency,
-                  completed: todo.completed
-                }),
-              })
-              const serverTodo = await res.json()
-              // Update the local todo with the server version
-              mergedTodos.push({ ...serverTodo, comments: todo.comments })
-              setTodos([...mergedTodos])
-              localStorage.setItem('todos', JSON.stringify(mergedTodos))
-            } catch (error) {
-              console.error('Failed to sync local todo to server:', error)
-            }
-          })
-
-          // Set initial merged state (will be updated as local todos sync)
-          setTodos(mergedTodos)
-          localStorage.setItem('todos', JSON.stringify(mergedTodos))
-        })
-        .catch(error => console.error('Failed to fetch todos:', error))
-    }
+    syncWithServer()
   }, [session])
-
-  // Save todos to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos))
-  }, [todos])
 
   const addTodo = async (todo: Todo) => {
     const newTodo = {
@@ -120,23 +90,26 @@ export default function Home() {
       userId: session?.user?.id || 'local',
     }
 
+    // Optimistic update
     setTodos(prev => [...prev, newTodo])
 
     if (session?.user) {
-    try {
-      const res = await fetch('/api/todos', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: todo.title,
-          dueDate: todo.dueDate,
-          urgency: todo.urgency
-        }),
-      })
+      try {
+        const res = await fetch('/api/todos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: todo.title,
+            dueDate: todo.dueDate,
+            urgency: todo.urgency
+          }),
+        })
         const serverTodo = await res.json()
         setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...serverTodo, comments: [] } : t))
-    } catch (error) {
-      console.error('Failed to add todo:', error)
+      } catch (error) {
+        console.error('Failed to add todo:', error)
+        // Revert on error
+        setTodos(prev => prev.filter(t => t.id !== newTodo.id))
       }
     }
   }
@@ -145,37 +118,113 @@ export default function Home() {
     const todoToUpdate = todos.find(t => t.id === id)
     if (!todoToUpdate) return
 
+    // Optimistic update
     setTodos(prev => prev.map(todo => 
       todo.id === id ? { ...todo, completed: !todo.completed, updatedAt: new Date() } : todo
     ))
 
     if (session?.user) {
-    try {
-      const res = await fetch('/api/todos', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id, completed: !todoToUpdate.completed }),
-      })
-      const updatedTodo = await res.json()
-      setTodos(prev => prev.map(todo => todo.id === id ? updatedTodo : todo))
-    } catch (error) {
-      console.error('Failed to toggle todo:', error)
+      try {
+        const res = await fetch('/api/todos', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, completed: !todoToUpdate.completed }),
+        })
+        const updatedTodo = await res.json()
+        setTodos(prev => prev.map(todo => todo.id === id ? updatedTodo : todo))
+      } catch (error) {
+        console.error('Failed to toggle todo:', error)
+        // Revert on error
+        setTodos(prev => prev.map(todo => 
+          todo.id === id ? { ...todo, completed: todoToUpdate.completed } : todo
+        ))
       }
     }
   }
 
+  const rescheduleTodo = async (id: string, newDate: string) => {
+    const todoToUpdate = todos.find(t => t.id === id)
+    if (!todoToUpdate) {
+      console.log('❌ Todo not found:', id)
+      return
+    }
+
+    console.log('🎯 Starting reschedule flow:', { id, newDate })
+    console.log('📅 Previous due date:', todoToUpdate.dueDate)
+
+    // Optimistic update
+    console.log('🔄 Applying optimistic update...')
+    setTodos(prev => {
+      const updated = prev.map(todo => 
+        todo.id === id ? { ...todo, dueDate: newDate, updatedAt: new Date() } : todo
+      )
+      console.log('📝 New todos state after optimistic update:', updated)
+      return updated
+    })
+
+    if (session?.user) {
+      console.log('👤 User is logged in, syncing with server...')
+      try {
+        console.log('📤 Sending update to server:', { id, dueDate: newDate })
+        const res = await fetch('/api/todos', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id, dueDate: newDate }),
+        })
+        const updatedTodo = await res.json()
+        console.log('📥 Server response:', updatedTodo)
+        
+        // Only update if the server response includes the new date
+        if (updatedTodo.dueDate === newDate) {
+          console.log('✅ Server update successful, updating state with server response')
+          setTodos(prev => {
+            const updated = prev.map(todo => todo.id === id ? updatedTodo : todo)
+            console.log('📝 Final todos state:', updated)
+            return updated
+          })
+        } else {
+          console.warn('⚠️ Server response dueDate does not match requested date', {
+            requested: newDate,
+            received: updatedTodo.dueDate
+          })
+        }
+      } catch (error) {
+        console.error('❌ Failed to reschedule todo:', error)
+        console.log('⏮️ Reverting to previous state...')
+        
+        // Revert on error
+        setTodos(prev => {
+          const reverted = prev.map(todo =>
+            todo.id === id ? { ...todo, dueDate: todoToUpdate.dueDate } : todo
+          )
+          console.log('📝 Reverted todos state:', reverted)
+          return reverted
+        })
+      }
+    } else {
+      console.log('👤 User not logged in, skipping server sync')
+    }
+    console.log('✨ Reschedule flow complete')
+  }
+
   const deleteTodo = async (id: string) => {
+    // Optimistic update
+    const deletedTodo = todos.find(t => t.id === id)
     setTodos(prev => prev.filter(todo => todo.id !== id))
 
     if (session?.user) {
-    try {
-      await fetch('/api/todos', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id }),
-      })
-    } catch (error) {
-      console.error('Failed to delete todo:', error)
+      try {
+        await fetch('/api/todos', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id }),
+        })
+      } catch (error) {
+        console.error('Failed to delete todo:', error)
+        // Revert on error
+        if (deletedTodo) {
+          setTodos(prev => [...prev, deletedTodo])
+        }
       }
     }
   }
@@ -192,6 +241,7 @@ export default function Home() {
       }
     }
 
+    // Optimistic update
     setTodos(prev =>
       prev.map(todo => todo.id === todoId ? {
         ...todo,
@@ -200,28 +250,40 @@ export default function Home() {
     )
 
     if (session?.user) {
-    try {
-      const res = await fetch('/api/todos/comments', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ todoId, text: comment.text }),
-      })
+      try {
+        const res = await fetch('/api/todos/comments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ todoId, text: comment.text }),
+        })
         const serverComment = await res.json()
-      setTodos(prev =>
-        prev.map(todo => todo.id === todoId ? {
-          ...todo,
+        setTodos(prev =>
+          prev.map(todo => todo.id === todoId ? {
+            ...todo,
             comments: todo.comments.map(c => 
               c.id === newComment.id ? { ...serverComment, createdAt: new Date(serverComment.createdAt) } : c
             )
-        } : todo)
-      )
-    } catch (error) {
-      console.error('Failed to add comment:', error)
+          } : todo)
+        )
+      } catch (error) {
+        console.error('Failed to add comment:', error)
+        // Revert on error
+        setTodos(prev =>
+          prev.map(todo => todo.id === todoId ? {
+            ...todo,
+            comments: todo.comments.filter(c => c.id !== newComment.id)
+          } : todo)
+        )
       }
     }
   }
 
   const deleteComment = async (todoId: string, commentId: string) => {
+    // Store comment for potential revert
+    const todoToUpdate = todos.find(t => t.id === todoId)
+    const commentToDelete = todoToUpdate?.comments.find(c => c.id === commentId)
+
+    // Optimistic update
     setTodos(prev =>
       prev.map(todo => todo.id === todoId ? {
         ...todo,
@@ -238,19 +300,18 @@ export default function Home() {
         })
       } catch (error) {
         console.error('Failed to delete comment:', error)
+        // Revert on error
+        if (commentToDelete) {
+          setTodos(prev =>
+            prev.map(todo => todo.id === todoId ? {
+              ...todo,
+              comments: [...todo.comments, commentToDelete]
+            } : todo)
+          )
+        }
       }
     }
   }
-
-  const rescheduleTodo = (id: string, newDate: string) => {
-    setTodos((prevTodos) =>
-      prevTodos.map((todo) =>
-        todo.id === id
-          ? { ...todo, dueDate: newDate, updatedAt: new Date() }
-          : todo
-      )
-    );
-  };
 
   // Filter todos based on showCompleted state
   const filteredTodos = showCompleted ? todos : todos.filter(todo => !todo.completed)

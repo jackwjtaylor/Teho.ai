@@ -88,17 +88,19 @@ export async function PUT(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { id, completed } = await req.json();
+  const { id, completed, dueDate } = await req.json();
   if (!id) {
     return NextResponse.json({ error: 'Todo ID is required' }, { status: 400 });
   }
 
+  // Update the todo with either completed or dueDate changes
+  const updateData: any = { updatedAt: new Date() };
+  if (completed !== undefined) updateData.completed = completed;
+  if (dueDate !== undefined) updateData.dueDate = dueDate;
+
   // Update the todo
   await db.update(todos)
-    .set({ 
-      completed, 
-      updatedAt: new Date() 
-    })
+    .set(updateData)
     .where(
       and(
         eq(todos.id, id),
