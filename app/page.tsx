@@ -14,8 +14,21 @@ import { convertOldTodoFormat } from "@/lib/utils"
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
-  const [showCompleted, setShowCompleted] = useState(true)
+  const [showCompleted, setShowCompleted] = useState(false) // Default to false
   const { data: session } = useSession()
+
+  // Load showCompleted preference from localStorage on client-side
+  useEffect(() => {
+    const savedShowCompleted = localStorage.getItem('showCompleted')
+    if (savedShowCompleted !== null) {
+      setShowCompleted(JSON.parse(savedShowCompleted))
+    }
+  }, [])
+
+  // Save showCompleted preference whenever it changes
+  useEffect(() => {
+    localStorage.setItem('showCompleted', JSON.stringify(showCompleted))
+  }, [showCompleted])
 
   // Load todos from localStorage first, then sync with server if logged in
   useEffect(() => {
@@ -221,6 +234,16 @@ export default function Home() {
     }
   }
 
+  const rescheduleTodo = (id: string, newDate: string) => {
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === id
+          ? { ...todo, dueDate: newDate, updatedAt: new Date() }
+          : todo
+      )
+    );
+  };
+
   // Filter todos based on showCompleted state
   const filteredTodos = showCompleted ? todos : todos.filter(todo => !todo.completed)
 
@@ -264,6 +287,7 @@ export default function Home() {
                 onDelete={deleteTodo} 
                 onAddComment={addComment}
                 onDeleteComment={deleteComment}
+                onReschedule={rescheduleTodo}
               />
             </motion.div>
           )}

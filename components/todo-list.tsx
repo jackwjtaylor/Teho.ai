@@ -10,9 +10,10 @@ interface TodoListProps {
   onDelete: (id: string) => void
   onAddComment: (todoId: string, comment: Comment) => void
   onDeleteComment: (todoId: string, commentId: string) => void
+  onReschedule: (id: string, newDate: string) => void
 }
 
-export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule }: TodoListProps) {
   if (todos.length === 0) {
     return null;
   }
@@ -41,6 +42,7 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
                 onDelete={onDelete} 
                 onAddComment={onAddComment}
                 onDeleteComment={onDeleteComment}
+                onReschedule={onReschedule}
               />
             </motion.div>
           ))}
@@ -66,6 +68,7 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
                     onDelete={onDelete} 
                     onAddComment={onAddComment}
                     onDeleteComment={onDeleteComment}
+                    onReschedule={onReschedule}
                   />
                 </motion.div>
               ))}
@@ -93,6 +96,7 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
                     onDelete={onDelete} 
                     onAddComment={onAddComment}
                     onDeleteComment={onDeleteComment}
+                    onReschedule={onReschedule}
                   />
                 </motion.div>
               ))}

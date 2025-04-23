@@ -124,8 +124,8 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
 
   return (
     <div className="mb-8">
-      <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] overflow-hidden transition-colors duration-200">
-        <div className="p-4">
+      <div className="bg-[#131316] rounded-[12px] shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)] overflow-hidden transition-colors duration-200">
+        <div className="p-5">
           <div className="flex items-center gap-2">
             <input
               ref={textInputRef}
@@ -134,15 +134,15 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleTextKeyDown}
               placeholder="What needs to be done?"
-              className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+              className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 text-[15px] transition-colors duration-200"
               disabled={step !== "text"}
             />
             {step === "text" && text.trim() && (
               <button
                 onClick={handleTextSubmit}
-                className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                className="md:hidden p-1 rounded-full hover:bg-white/10 transition-colors"
               >
-                <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
+                <ArrowRight className="w-5 h-5 text-white/50" />
               </button>
             )}
           </div>
@@ -154,7 +154,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10"
+                className="mt-2 pt-2 border-t border-white/10"
               >
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">When:</span>
@@ -166,15 +166,15 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                       onChange={(e) => setDate(e.target.value)}
                       onKeyDown={handleDateKeyDown}
                       placeholder="tomorrow, next week, etc."
-                      className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+                      className="flex-1 bg-transparent border-none outline-none text-white placeholder-gray-500 text-[15px] transition-colors duration-200"
                       disabled={step !== "date" || isDateLoading}
                     />
                     {step === "date" && date.trim() && !isDateLoading && (
                       <button
                         onClick={handleDateSubmit}
-                        className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                        className="md:hidden p-1 rounded-full hover:bg-white/10 transition-colors"
                       >
-                        <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
+                        <ArrowRight className="w-5 h-5 text-white/50" />
                       </button>
                     )}
                     {isDateLoading && <IOSpinner />}
@@ -191,7 +191,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10"
+                className="mt-2 pt-2 border-t border-white/10"
               >
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">Urgency:</span>
@@ -203,9 +203,9 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                       readOnly
                       onKeyDown={handleUrgencyKeyDown}
                       onKeyUp={handleUrgencyKeyUp}
-                      className="w-12 bg-transparent border-none outline-none text-gray-900 dark:text-white text-[15px] transition-colors duration-200"
+                      className="w-12 bg-transparent border-none outline-none text-white text-[15px] transition-colors duration-200"
                     />
-                    <div className="flex-1 h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden ml-2">
+                    <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden ml-2">
                       <motion.div
                         className="h-full bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]"
                         style={{ width: `${(urgency / 5) * 100}%` }}
@@ -224,7 +224,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                   </div>
                   <button
                     onClick={submitTodo}
-                    className="md:hidden ml-2 px-3 py-1 bg-[#7c5aff] text-white rounded-full text-sm hover:bg-[#6c47ff] transition-colors"
+                    className="md:hidden ml-2 px-4 h-8 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200"
                   >
                     Add Todo
                   </button>

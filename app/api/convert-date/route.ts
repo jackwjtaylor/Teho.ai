@@ -9,7 +9,9 @@ export async function POST(req: Request) {
     
     const systemPrompt = `### Convert Relative Time Expressions to Specific Date & Time Strings  
 
-The current date and time is ${currentDate.toLocaleString('en-US', { 
+The current date and time is 
+
+${currentDate.toLocaleString('en-US', { 
   month: 'long',
   day: 'numeric',
   year: 'numeric',
@@ -17,6 +19,16 @@ The current date and time is ${currentDate.toLocaleString('en-US', {
   minute: '2-digit',
   hour12: true
 })}
+
+The day of the week is ${currentDate.toLocaleString('en-US', { weekday: 'long' })}
+
+The month is ${currentDate.toLocaleString('en-US', { month: 'long' })}
+
+The year is ${currentDate.getFullYear()}
+
+The time is ${currentDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+
+
 
 ---
 
