@@ -129,8 +129,8 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
           />
         </div>
 
-        <div className="p-5 cursor-pointer" onClick={toggleExpand}>
-          <div className="flex items-start gap-3">
+        <div className="p-4 cursor-pointer" onClick={toggleExpand}>
+          <div className="flex items-start gap-2">
             <button
               onClick={(e) => {
                 e.stopPropagation()
@@ -206,7 +206,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                 </div>
               </div>
 
-              <div className="flex items-center mt-1 text-[13px] space-x-2">
+              <div className="flex items-center mt-1 text-[13px] space-x-1">
                 {todo.dueDate && (
                   <span className={`${getTimeColor(todo.dueDate)} font-medium`}>
                     {formatDate(todo.dueDate)}
@@ -250,30 +250,23 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ y: -10, opacity: 0 }}
                 transition={{ duration: 0.2, delay: 0.1 }}
-                className="p-5"
+                className="p-4"
               >
                 {/* Comments list */}
                 {todo.comments.length > 0 && (
-                  <motion.div 
-                    className="mb-6 space-y-4"
-                    layout
-                  >
+                  <motion.div className="mb-4 space-y-2" layout>
                     {todo.comments.map((comment) => (
-                      <motion.div
+                      <div
                         key={comment.id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        transition={{ duration: 0.2 }}
                         onMouseEnter={() => setHoveredCommentId(comment.id)}
                         onMouseLeave={() => setHoveredCommentId(null)}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2">
                           <div className="flex-shrink-0 mt-0.5">
                             <User className="w-4 h-4 text-gray-400 dark:text-white/40" />
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="group flex items-start justify-between gap-4">
+                            <div className="group flex items-start justify-between gap-2">
                               <div>
                                 <div className="text-[15px] text-gray-700 dark:text-white/80 whitespace-pre-wrap break-words">
                                   {comment.text}
@@ -305,7 +298,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                             </div>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))}
                   </motion.div>
                 )}
@@ -315,7 +308,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ delay: 0.2 }}
-                  className="flex items-start gap-3"
+                  className="flex items-start gap-2"
                 >
                   <div className="flex-shrink-0 mt-0.5">
                     <User className="w-4 h-4 text-gray-400 dark:text-white/40" />

@@ -3,6 +3,7 @@ export interface Todo {
   title: string
   completed: boolean
   userId: string
+  workspaceId?: string
   createdAt: Date
   updatedAt: Date
   comments: Comment[]
@@ -19,5 +20,23 @@ export interface Comment {
   user?: {
     name: string
     image: string | null
+  }
+}
+
+export interface Workspace {
+  id: string
+  name: string
+  ownerId: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface WorkspaceMember {
+  workspaceId: string
+  userId: string
+  role: 'owner' | 'member'
+  user?: {
+    name: string
+    image?: string | null
   }
 }
