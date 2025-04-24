@@ -6,7 +6,8 @@ import type { Todo } from "@/lib/types"
 import { v4 as uuidv4 } from "uuid"
 import { convertRelativeDate } from "@/lib/date-utils"
 import { IOSpinner } from "./spinner"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Calendar } from "lucide-react"
+import { useSession } from "@/lib/auth-client"
 
 type InputStep = "text" | "date" | "urgency"
 
@@ -17,16 +18,24 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
   const [isDateLoading, setIsDateLoading] = useState(false)
   const [urgency, setUrgency] = useState(3)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
+  const { data: session } = useSession()
 
   const textInputRef = useRef<HTMLInputElement>(null)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const datePickerRef = useRef<HTMLInputElement>(null)
   const urgencyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (step === "text") textInputRef.current?.focus()
-    if (step === "date") dateInputRef.current?.focus()
+    if (step === "date") {
+      if (session?.user) {
+        dateInputRef.current?.focus()
+      } else {
+        datePickerRef.current?.focus()
+      }
+    }
     if (step === "urgency") urgencyInputRef.current?.focus()
-  }, [step])
+  }, [step, session?.user])
 
   const handleTextSubmit = () => {
     if (text.trim()) {
@@ -35,7 +44,8 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
   }
 
   const handleDateSubmit = async () => {
-    if (date.trim()) {
+    if (session?.user && date.trim()) {
+      // AI date conversion for logged-in users
       setIsDateLoading(true)
       try {
         const result = await convertRelativeDate(date.trim())
@@ -46,6 +56,9 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
       } finally {
         setIsDateLoading(false)
       }
+    } else if (!session?.user && date) {
+      // Standard date picker just moves to next step
+      setStep("urgency")
     }
   }
 
@@ -61,6 +74,23 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
       e.preventDefault()
       await handleDateSubmit()
     }
+  }
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(formatDatePickerValue(e.target.value))
+  }
+
+  // Format date from picker to readable format
+  const formatDatePickerValue = (dateValue: string): string => {
+    if (!dateValue) return ""
+    const date = new Date(dateValue)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
   }
 
   const handleUrgencyKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -159,25 +189,50 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">When:</span>
                   <div className="flex-1 flex items-center gap-2">
-                    <input
-                      ref={dateInputRef}
-                      type="text"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      onKeyDown={handleDateKeyDown}
-                      placeholder="tomorrow, next week, etc."
-                      className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
-                      disabled={step !== "date" || isDateLoading}
-                    />
-                    {step === "date" && date.trim() && !isDateLoading && (
-                      <button
-                        onClick={handleDateSubmit}
-                        className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                      >
-                        <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
-                      </button>
+                    {session?.user ? (
+                      // AI-powered date input for logged-in users
+                      <>
+                        <input
+                          ref={dateInputRef}
+                          type="text"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          onKeyDown={handleDateKeyDown}
+                          placeholder="tomorrow, next week, etc."
+                          className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+                          disabled={step !== "date" || isDateLoading}
+                        />
+                        {step === "date" && date.trim() && !isDateLoading && (
+                          <button
+                            onClick={handleDateSubmit}
+                            className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                          </button>
+                        )}
+                        {isDateLoading && <IOSpinner />}
+                      </>
+                    ) : (
+                      // Standard date picker for guests
+                      <div className="flex-1 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <input
+                          ref={datePickerRef}
+                          type="datetime-local"
+                          onChange={handleDatePickerChange}
+                          className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-[15px] transition-colors duration-200"
+                          disabled={step !== "date"}
+                        />
+                        {step === "date" && date && (
+                          <button
+                            onClick={handleDateSubmit}
+                            className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                          </button>
+                        )}
+                      </div>
                     )}
-                    {isDateLoading && <IOSpinner />}
                   </div>
                 </div>
               </motion.div>

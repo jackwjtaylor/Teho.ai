@@ -9,9 +9,13 @@ import CompletedToggle from "@/components/completed-toggle"
 import ViewToggle from "@/components/view-toggle"
 import LoginButton from "@/components/LoginButton"
 import FeedbackWidget from "@/components/feedback-widget"
-import type { Todo, Comment } from "@/lib/types"
+import type { Todo, Comment, Workspace } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/auth-client"
+import WorkspaceSwitcher from "@/components/workspace-switcher"
+import NewWorkspaceDialog from "@/components/new-workspace-dialog"
+import CommandPalette from "@/components/command-palette"
+import { toast } from 'sonner'
 
 interface HomeClientProps {
   initialTodos: Todo[]
@@ -46,6 +50,10 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [todos, setTodos] = usePersistentState<Todo[]>('todos', initialTodos)
   const [showCompleted, setShowCompleted] = usePersistentState('showCompleted', false)
   const [isTableView, setIsTableView] = usePersistentState('isTableView', false)
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [currentWorkspace, setCurrentWorkspace] = usePersistentState<string>('currentWorkspace', 'personal')
+  const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const { data: session } = useSession()
 
   // Sync with server if logged in
@@ -141,11 +149,49 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     syncWithServer()
   }, [session?.user]) // Only re-run when user session changes
 
+  // Load workspaces when session changes
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchWorkspaces = async () => {
+      try {
+        // Ensure we have at least a personal workspace
+        await fetch('/api/workspaces/personal', { method: 'POST' });
+
+        // Fetch all workspaces
+        const res = await fetch('/api/workspaces');
+        if (res.ok) {
+          const workspacesData = await res.json();
+          setWorkspaces(workspacesData);
+          
+          // If no current workspace is selected, or it doesn't exist in fetched workspaces,
+          // default to first workspace or 'personal'
+          if (
+            currentWorkspace === 'personal' || 
+            !workspacesData.some((w: Workspace) => w.id === currentWorkspace)
+          ) {
+            const personalWorkspace = workspacesData.find((w: Workspace) => w.name === 'Personal');
+            if (personalWorkspace) {
+              setCurrentWorkspace(personalWorkspace.id);
+            } else if (workspacesData.length > 0) {
+              setCurrentWorkspace(workspacesData[0].id);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Failed to fetch workspaces:', error);
+      }
+    };
+
+    fetchWorkspaces();
+  }, [session?.user]);
+
   const addTodo = async (todo: Todo) => {
     const newTodo = {
       ...todo,
       comments: [],
       userId: session?.user?.id || 'local',
+      workspaceId: currentWorkspace,
     }
 
     // Optimistic update
@@ -159,7 +205,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           body: JSON.stringify({
             title: todo.title,
             dueDate: todo.dueDate,
-            urgency: todo.urgency
+            urgency: todo.urgency,
+            workspaceId: currentWorkspace
           }),
         })
         const serverTodo = await res.json()
@@ -371,12 +418,74 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     }
   }
 
-  // Filter todos based on showCompleted state
-  const filteredTodos = showCompleted ? todos : todos.filter(todo => !todo.completed)
+  // Filter todos based on showCompleted state and current workspace
+  const filteredTodos = todos
+    .filter(todo => todo.workspaceId === currentWorkspace || (!todo.workspaceId && currentWorkspace === 'personal'))
+    .filter(todo => showCompleted ? true : !todo.completed);
+
+  const deleteWorkspace = async (workspaceId: string) => {
+    // Don't delete if there are incomplete todos
+    const hasIncompleteTodos = todos.some(todo => 
+      todo.workspaceId === workspaceId && !todo.completed
+    )
+    if (hasIncompleteTodos) {
+      toast.error("Cannot delete workspace with incomplete todos")
+      return
+    }
+
+    // Store workspace for potential revert
+    const workspaceToDelete = workspaces.find(w => w.id === workspaceId)
+    const workspaceName = workspaceToDelete?.name || 'Workspace'
+
+    // Optimistic update
+    setWorkspaces(prev => prev.filter(w => w.id !== workspaceId))
+
+    // If this was the current workspace, switch to another one
+    if (workspaceId === currentWorkspace) {
+      const remainingWorkspaces = workspaces.filter(w => w.id !== workspaceId)
+      if (remainingWorkspaces.length > 0) {
+        setCurrentWorkspace(remainingWorkspaces[0].id)
+      }
+    }
+
+    if (session?.user) {
+      try {
+        const res = await fetch('/api/workspaces', {
+          method: 'DELETE',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: workspaceId }),
+        })
+        if (!res.ok) throw new Error('Failed to delete workspace')
+        
+        toast(`${workspaceName} deleted`)
+      } catch (error) {
+        console.error('Failed to delete workspace:', error)
+        toast.error(`Failed to delete ${workspaceName}`)
+        
+        // Revert on error
+        if (workspaceToDelete) {
+          setWorkspaces(prev => [...prev, workspaceToDelete])
+          if (workspaceId === currentWorkspace) {
+            setCurrentWorkspace(workspaceId)
+          }
+        }
+      }
+    } else {
+      toast(`${workspaceName} deleted`)
+    }
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="relative mx-auto mb-4 flex items-center space-x-2 justify-center md:absolute md:top-4 md:right-4 md:mb-0 md:mx-0 md:justify-start">
+        <WorkspaceSwitcher
+          workspaces={workspaces}
+          currentWorkspace={currentWorkspace}
+          onSwitch={setCurrentWorkspace}
+          onCreateNew={() => setIsNewWorkspaceDialogOpen(true)}
+          onDelete={deleteWorkspace}
+          todos={todos}
+        />
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
         <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} />
         <ThemeToggle />
@@ -432,6 +541,70 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           )}
         </AnimatePresence>
       </motion.div>
+
+      <NewWorkspaceDialog
+        isOpen={isNewWorkspaceDialogOpen}
+        onClose={() => setIsNewWorkspaceDialogOpen(false)}
+        onSubmit={async (name) => {
+          try {
+            const res = await fetch('/api/workspaces', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name }),
+            });
+            if (res.ok) {
+              const workspace = await res.json();
+              setWorkspaces(prev => [...prev, workspace]);
+              setCurrentWorkspace(workspace.id);
+            }
+          } catch (error) {
+            console.error('Failed to create workspace:', error);
+          }
+        }}
+      />
+
+      <CommandPalette
+        todos={filteredTodos}
+        workspaces={workspaces}
+        currentWorkspace={currentWorkspace}
+        isOpen={isCommandPaletteOpen}
+        setIsOpen={setIsCommandPaletteOpen}
+        onTodoSelect={(todo) => {
+          const element = document.getElementById(`todo-${todo.id}`)
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('highlight')
+            setTimeout(() => element.classList.remove('highlight'), 2000)
+          }
+        }}
+        onWorkspaceSwitch={setCurrentWorkspace}
+        onWorkspaceCreate={async (name) => {
+          try {
+            const res = await fetch('/api/workspaces', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ name }),
+            });
+            if (res.ok) {
+              const workspace = await res.json();
+              setWorkspaces(prev => [...prev, workspace]);
+              setCurrentWorkspace(workspace.id);
+            }
+          } catch (error) {
+            console.error('Failed to create workspace:', error);
+          }
+        }}
+        onAddComment={addComment}
+        onAddTodo={addTodo}
+        onMarkCompleted={(todoId) => {
+          setTodos(prev => prev.map(todo => 
+            todo.id === todoId 
+              ? { ...todo, completed: true, updatedAt: new Date() }
+              : todo
+          ))
+        }}
+        onWorkspaceDelete={deleteWorkspace}
+      />
     </div>
   )
 } 

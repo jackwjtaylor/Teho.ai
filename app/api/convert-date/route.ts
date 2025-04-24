@@ -1,9 +1,24 @@
 import { openai } from '@ai-sdk/openai';
 import { generateText } from 'ai';
 import { NextResponse } from 'next/server';
+import { auth } from '@/lib/auth';
+import { cookies } from 'next/headers';
 
 export async function POST(req: Request) {
   try {
+    // Authentication check
+    const cookieStore = await cookies();
+    const session = await auth.api.getSession({
+      headers: new Headers({
+        cookie: cookieStore.toString()
+      })
+    });
+    
+    // Only allow authenticated users to use this feature
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
     const { text } = await req.json();
     const currentDate = new Date();
     

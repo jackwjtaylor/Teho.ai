@@ -36,6 +36,13 @@
       "when": 1745444353783,
       "tag": "0004_sparkling_zombie",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1745461839273,
+      "tag": "0005_rainy_wild_pack",
+      "breakpoints": true
     }
   ]
 }
