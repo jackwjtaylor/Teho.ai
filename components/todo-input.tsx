@@ -6,7 +6,8 @@ import type { Todo } from "@/lib/types"
 import { v4 as uuidv4 } from "uuid"
 import { convertRelativeDate } from "@/lib/date-utils"
 import { IOSpinner } from "./spinner"
-import { ArrowRight } from "lucide-react"
+import { ArrowRight, Calendar } from "lucide-react"
+import { useSession } from "@/lib/auth-client"
 
 type InputStep = "text" | "date" | "urgency"
 
@@ -17,16 +18,24 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
   const [isDateLoading, setIsDateLoading] = useState(false)
   const [urgency, setUrgency] = useState(3)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
+  const { data: session } = useSession()
 
   const textInputRef = useRef<HTMLInputElement>(null)
   const dateInputRef = useRef<HTMLInputElement>(null)
+  const datePickerRef = useRef<HTMLInputElement>(null)
   const urgencyInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     if (step === "text") textInputRef.current?.focus()
-    if (step === "date") dateInputRef.current?.focus()
+    if (step === "date") {
+      if (session?.user) {
+        dateInputRef.current?.focus()
+      } else {
+        datePickerRef.current?.focus()
+      }
+    }
     if (step === "urgency") urgencyInputRef.current?.focus()
-  }, [step])
+  }, [step, session?.user])
 
   const handleTextSubmit = () => {
     if (text.trim()) {
@@ -35,7 +44,8 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
   }
 
   const handleDateSubmit = async () => {
-    if (date.trim()) {
+    if (session?.user && date.trim()) {
+      // AI date conversion for logged-in users
       setIsDateLoading(true)
       try {
         const result = await convertRelativeDate(date.trim())
@@ -46,6 +56,9 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
       } finally {
         setIsDateLoading(false)
       }
+    } else if (!session?.user && date) {
+      // Standard date picker just moves to next step
+      setStep("urgency")
     }
   }
 
@@ -61,6 +74,23 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
       e.preventDefault()
       await handleDateSubmit()
     }
+  }
+
+  const handleDatePickerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDate(formatDatePickerValue(e.target.value))
+  }
+
+  // Format date from picker to readable format
+  const formatDatePickerValue = (dateValue: string): string => {
+    if (!dateValue) return ""
+    const date = new Date(dateValue)
+    return date.toLocaleDateString('en-US', { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit'
+    })
   }
 
   const handleUrgencyKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
@@ -124,8 +154,8 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
 
   return (
     <div className="mb-8">
-      <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] overflow-hidden transition-colors duration-200">
-        <div className="p-4">
+      <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] dark:shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] dark:shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] dark:shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] dark:shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] dark:shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)] overflow-hidden transition-colors duration-200">
+        <div className="p-5">
           <div className="flex items-center gap-2">
             <input
               ref={textInputRef}
@@ -142,7 +172,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 onClick={handleTextSubmit}
                 className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
               >
-                <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
+                <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
               </button>
             )}
           </div>
@@ -159,25 +189,50 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">When:</span>
                   <div className="flex-1 flex items-center gap-2">
-                    <input
-                      ref={dateInputRef}
-                      type="text"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      onKeyDown={handleDateKeyDown}
-                      placeholder="tomorrow, next week, etc."
-                      className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
-                      disabled={step !== "date" || isDateLoading}
-                    />
-                    {step === "date" && date.trim() && !isDateLoading && (
-                      <button
-                        onClick={handleDateSubmit}
-                        className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                      >
-                        <ArrowRight className="w-5 h-5 text-gray-500 dark:text-white/50" />
-                      </button>
+                    {session?.user ? (
+                      // AI-powered date input for logged-in users
+                      <>
+                        <input
+                          ref={dateInputRef}
+                          type="text"
+                          value={date}
+                          onChange={(e) => setDate(e.target.value)}
+                          onKeyDown={handleDateKeyDown}
+                          placeholder="tomorrow, next week, etc."
+                          className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
+                          disabled={step !== "date" || isDateLoading}
+                        />
+                        {step === "date" && date.trim() && !isDateLoading && (
+                          <button
+                            onClick={handleDateSubmit}
+                            className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                          </button>
+                        )}
+                        {isDateLoading && <IOSpinner />}
+                      </>
+                    ) : (
+                      // Standard date picker for guests
+                      <div className="flex-1 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <input
+                          ref={datePickerRef}
+                          type="datetime-local"
+                          onChange={handleDatePickerChange}
+                          className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white text-[15px] transition-colors duration-200"
+                          disabled={step !== "date"}
+                        />
+                        {step === "date" && date && (
+                          <button
+                            onClick={handleDateSubmit}
+                            className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                          >
+                            <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
+                          </button>
+                        )}
+                      </div>
                     )}
-                    {isDateLoading && <IOSpinner />}
                   </div>
                 </div>
               </motion.div>
@@ -205,7 +260,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                       onKeyUp={handleUrgencyKeyUp}
                       className="w-12 bg-transparent border-none outline-none text-gray-900 dark:text-white text-[15px] transition-colors duration-200"
                     />
-                    <div className="flex-1 h-2 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden ml-2">
+                    <div className="flex-1 h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden ml-2">
                       <motion.div
                         className="h-full bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]"
                         style={{ width: `${(urgency / 5) * 100}%` }}
@@ -224,7 +279,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                   </div>
                   <button
                     onClick={submitTodo}
-                    className="md:hidden ml-2 px-3 py-1 bg-[#7c5aff] text-white rounded-full text-sm hover:bg-[#6c47ff] transition-colors"
+                    className="md:hidden ml-2 px-4 h-8 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200"
                   >
                     Add Todo
                   </button>

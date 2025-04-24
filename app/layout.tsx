@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Analytics } from "@vercel/analytics/react"
 import { PostHogProvider } from "@/components/PostHogProvider"
+import ToastProvider from "@/components/toast-provider"
 
 export const metadata: Metadata = {
   title: "exon todo",
@@ -21,6 +22,7 @@ export default function RootLayout({
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>
             {children}
+            <ToastProvider />
           </ThemeProvider>
           <Analytics />
         </PostHogProvider>

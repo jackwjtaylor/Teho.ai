@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, integer } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, integer, primaryKey } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
     id: text('id').primaryKey(),
@@ -46,11 +46,29 @@ export const verifications = pgTable("verifications", {
     updatedAt: timestamp('updated_at')
 });
 
+export const workspaces = pgTable("workspaces", {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    ownerId: text("owner_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const workspaceMembers = pgTable("workspace_members", {
+    workspaceId: text("workspace_id").notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+    userId: text("user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
+    role: text("role", { enum: ["owner", "member"] }).notNull(),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+}, (t) => [
+    primaryKey({ columns: [t.workspaceId, t.userId] }),
+]);
+
 export const todos = pgTable("todos", {
     id: text('id').primaryKey(),
     title: text('title').notNull(),
     completed: boolean('completed').notNull().default(false),
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
     dueDate: text('due_date'),
