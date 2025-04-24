@@ -478,14 +478,16 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="relative mx-auto mb-4 flex items-center space-x-2 justify-center md:absolute md:top-4 md:right-4 md:mb-0 md:mx-0 md:justify-start">
-        <WorkspaceSwitcher
-          workspaces={workspaces}
-          currentWorkspace={currentWorkspace}
-          onSwitch={setCurrentWorkspace}
-          onCreateNew={() => setIsNewWorkspaceDialogOpen(true)}
-          onDelete={deleteWorkspace}
-          todos={todos}
-        />
+        {session?.user && (
+          <WorkspaceSwitcher
+            workspaces={workspaces}
+            currentWorkspace={currentWorkspace}
+            onSwitch={setCurrentWorkspace}
+            onCreateNew={() => setIsNewWorkspaceDialogOpen(true)}
+            onDelete={deleteWorkspace}
+            todos={todos}
+          />
+        )}
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
         <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} />
         <ThemeToggle />
@@ -542,28 +544,30 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         </AnimatePresence>
       </motion.div>
 
-      <NewWorkspaceDialog
-        isOpen={isNewWorkspaceDialogOpen}
-        onClose={() => setIsNewWorkspaceDialogOpen(false)}
-        onSubmit={async (name) => {
-          try {
-            const res = await fetch('/api/workspaces', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name }),
-            });
-            if (res.ok) {
-              const workspace = await res.json();
-              setWorkspaces(prev => [...prev, workspace]);
-              setCurrentWorkspace(workspace.id);
+      {session?.user && (
+        <NewWorkspaceDialog
+          isOpen={isNewWorkspaceDialogOpen}
+          onClose={() => setIsNewWorkspaceDialogOpen(false)}
+          onSubmit={async (name) => {
+            try {
+              const res = await fetch('/api/workspaces', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+              });
+              if (res.ok) {
+                const workspace = await res.json();
+                setWorkspaces(prev => [...prev, workspace]);
+                setCurrentWorkspace(workspace.id);
+              }
+            } catch (error) {
+              console.error('Failed to create workspace:', error);
             }
-          } catch (error) {
-            console.error('Failed to create workspace:', error);
-          }
-        }}
-      />
+          }}
+        />
+      )}
 
-      <CommandPalette
+      {/* <CommandPalette
         todos={filteredTodos}
         workspaces={workspaces}
         currentWorkspace={currentWorkspace}
@@ -604,7 +608,9 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           ))
         }}
         onWorkspaceDelete={deleteWorkspace}
-      />
+        session={session}
+      /> 
+      {/* Will add in later */}
     </div>
   )
 } 
