@@ -48,7 +48,7 @@ Timezone: "America/New_York"
 <reminder_title>Review Client Presentation Slides</reminder_title>
 <reminder_description>Review the prepared presentation slides for the client meeting, ensuring Q2 metrics are included and all content is finalized.</reminder_description>
 <reminder_time>tomorrow at 9:00 AM America/New_York</reminder_time>
-<reminder_summary>🔔 Reminder set: I'll remind you to review the presentation slides tomorrow at 9:00 AM ET</reminder_summary>
+<reminder_summary>I'll remind you to review the presentation slides tomorrow at 9:00 AM ET</reminder_summary>
 
 **Input:**
 Todo: "Fix login bug in authentication flow"

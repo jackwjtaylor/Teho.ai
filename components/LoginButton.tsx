@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useSession, authClient } from "@/lib/auth-client"
-import { User, Settings, LogOut } from "lucide-react"
+import { User, Settings, LogOut, Bell } from "lucide-react"
 import { FaGoogle } from "react-icons/fa"
 import {
   DropdownMenu,
@@ -14,10 +14,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import SettingsDialog from "./SettingsDialog"
+import RemindersDialog from "./RemindersDialog"
 
 export default function LoginButton() {
   const { data: session } = useSession()
   const [showSettings, setShowSettings] = useState(false)
+  const [showReminders, setShowReminders] = useState(false)
 
   if (session?.user) {
     const initials = session.user.name
@@ -47,6 +49,13 @@ export default function LoginButton() {
             <DropdownMenuSeparator />
             <DropdownMenuItem 
               className="gap-2"
+              onClick={() => setShowReminders(true)}
+            >
+              <Bell className="h-4 w-4" />
+              Reminders
+            </DropdownMenuItem>
+            <DropdownMenuItem 
+              className="gap-2"
               onClick={() => setShowSettings(true)}
             >
               <Settings className="h-4 w-4" />
@@ -73,6 +82,11 @@ export default function LoginButton() {
         <SettingsDialog 
           open={showSettings} 
           onOpenChange={setShowSettings} 
+        />
+
+        <RemindersDialog
+          open={showReminders}
+          onOpenChange={setShowReminders}
         />
       </>
     )
