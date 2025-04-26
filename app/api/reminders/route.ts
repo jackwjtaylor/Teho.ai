@@ -60,7 +60,7 @@ Timezone: "UTC"
 <reminder_title>Test Authentication Fix</reminder_title>
 <reminder_description>Test the login bug fix in the authentication flow, focusing on the OAuth screen issues and token expiration handling.</reminder_description>
 <reminder_time>in 2 hours</reminder_time>
-<reminder_summary>🔔 Reminder set: I'll remind you to test the authentication fix in 2 hours</reminder_summary>
+<reminder_summary>!!RMD!! I'll remind you to test the authentication fix in 2 hours</reminder_summary>
 
 ---
 
@@ -78,192 +78,192 @@ Timezone: "UTC"
 // Checks if the user is authenticated and returns their userId
 // Throws an error if not authenticated
 async function checkAuth() {
-  const cookieStore = await cookies();
-  const session = await auth.api.getSession({
-    headers: new Headers({
-      cookie: cookieStore.toString()
-    })
-  });
-  
-  if (!session?.user?.id) {
-    throw new Error('Authentication required');
-  }
-  
-  return session.user.id;
+    const cookieStore = await cookies();
+    const session = await auth.api.getSession({
+        headers: new Headers({
+            cookie: cookieStore.toString()
+        })
+    });
+
+    if (!session?.user?.id) {
+        throw new Error('Authentication required');
+    }
+
+    return session.user.id;
 }
 
 interface ReminderRequest {
-  todoId: string;
-  todoTitle: string;
-  comments: Comment[];
-  message: string;
+    todoId: string;
+    todoTitle: string;
+    comments: Comment[];
+    message: string;
 }
 
 // Creates a new reminder for a todo's comment
 // Requires: todoId, todoTitle, comments, and message in the request body
 // Returns: the created reminder object with AI-generated details
 export async function POST(req: Request) {
-  try {
-    console.log('🔑 Authenticating user...');
-    const userId = await checkAuth();
-    const { todoId, todoTitle, comments, message } = (await req.json()) as ReminderRequest;
+    try {
+        console.log('🔑 Authenticating user...');
+        const userId = await checkAuth();
+        const { todoId, todoTitle, comments, message } = (await req.json()) as ReminderRequest;
 
-    // Get user's timezone setting
-    const userSetting = await db.query.userSettings.findFirst({
-      where: eq(userSettings.userId, userId)
-    });
+        // Get user's timezone setting
+        const userSetting = await db.query.userSettings.findFirst({
+            where: eq(userSettings.userId, userId)
+        });
 
-    const userTimezone = userSetting?.timezone || 'UTC';
+        const userTimezone = userSetting?.timezone || 'UTC';
 
-    console.log('📝 Received reminder request:', {
-      todoTitle,
-      commentsCount: comments.length,
-      message,
-      timezone: userTimezone
-    });
+        console.log('📝 Received reminder request:', {
+            todoTitle,
+            commentsCount: comments.length,
+            message,
+            timezone: userTimezone
+        });
 
-    // Generate reminder details using AI
-    console.log('🤖 Generating reminder details with AI...');
-    const prompt = `Todo: "${todoTitle}"\nComments: ${JSON.stringify(comments.map((c: Comment) => c.text))}\nMessage: "${message}"\nTimezone: "${userTimezone}"`;
-    
-    const { text: aiResponse } = await generateText({
-      model: openai('gpt-4.1-nano'),
-      prompt,
-      system: systemPrompt,
-    });
+        // Generate reminder details using AI
+        console.log('🤖 Generating reminder details with AI...');
+        const prompt = `Todo: "${todoTitle}"\nComments: ${JSON.stringify(comments.map((c: Comment) => c.text))}\nMessage: "${message}"\nTimezone: "${userTimezone}"`;
 
-    console.log('✨ AI response received, extracting blocks...');
-    // Extract blocks from AI response
-    const extractBlock = (blockName: string) => {
-      const regex = new RegExp(`<${blockName}>(.*?)</${blockName}>`, 's');
-      const match = aiResponse.match(regex);
-      return match ? match[1].trim() : '';
-    };
+        const { text: aiResponse } = await generateText({
+            model: openai('gpt-4.1-mini'),
+            prompt,
+            system: systemPrompt,
+        });
 
-    const title = extractBlock('reminder_title');
-    const description = extractBlock('reminder_description');
-    const timeStr = extractBlock('reminder_time');
-    const summary = extractBlock('reminder_summary');
+        console.log('✨ AI response received, extracting blocks...');
+        // Extract blocks from AI response
+        const extractBlock = (blockName: string) => {
+            const regex = new RegExp(`<${blockName}>(.*?)</${blockName}>`, 's');
+            const match = aiResponse.match(regex);
+            return match ? match[1].trim() : '';
+        };
 
-    console.log('📦 Extracted reminder components:', {
-      title,
-      timeStr,
-      hasDescription: !!description,
-      hasSummary: !!summary
-    });
+        const title = extractBlock('reminder_title');
+        const description = extractBlock('reminder_description');
+        const timeStr = extractBlock('reminder_time');
+        const summary = extractBlock('reminder_summary');
 
-    if (!title || !description || !timeStr || !summary) {
-      console.error('❌ Invalid AI response format - missing required blocks');
-      throw new Error('Invalid AI response format');
+        console.log('📦 Extracted reminder components:', {
+            title,
+            timeStr,
+            hasDescription: !!description,
+            hasSummary: !!summary
+        });
+
+        if (!title || !description || !timeStr || !summary) {
+            console.error('❌ Invalid AI response format - missing required blocks');
+            throw new Error('Invalid AI response format');
+        }
+
+        // Convert the time string using the same date conversion logic
+        console.log('⏰ Converting time string:', timeStr);
+        const { text: dateResult } = await generateText({
+            model: openai('gpt-4.1-mini'),
+            prompt: `${timeStr}\nUser timezone: ${userTimezone}`,
+            system: `### Convert Relative Time Expressions to Specific Date & Time Strings
+
+            The current date and time in the user's timezone (${userTimezone}) is:
+
+            ${new Date().toLocaleString('en-US', {
+                            timeZone: userTimezone,
+                            month: 'long',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            hour12: true
+                        })}
+
+            The day of the week is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, weekday: 'long' })}
+            The month is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, month: 'long' })}
+            The year is ${new Date().getFullYear()}
+            The time is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
+
+            ---
+
+            ### ✅ Output Format:
+            - Convert the input time to UTC
+            - Date: "Month Day, Year"
+            - Time: "HH:MM AM/PM UTC"
+            - If time is **not** mentioned, default to 9:00 AM in the user's timezone
+            - ONLY RESPOND WITH THE TIME, IN THIS FORMAT:
+
+            \`\`\`
+            <TEXT>
+            Converting "${timeStr}" from ${userTimezone} to UTC
+            </TEXT>
+            <TIME>April 21, 2025, 9:00 PM UTC</TIME>
+            \`\`\``,
+        });
+
+        console.log('🔍 Parsing date from AI response...');
+        // Extract the date/time from the response
+        const timeMatch = dateResult.match(/<[tT][iI][mM][eE]>(.*?)<\/[tT][iI][mM][eE]>/);
+        if (!timeMatch) {
+            console.error('❌ Invalid date format in AI response, dateResult:', dateResult);
+            throw new Error('Invalid date format in AI response');
+        }
+
+        const dateTimeStr = timeMatch[1];
+        const dateTime = new Date(dateTimeStr);
+        console.log('📅 Parsed reminder time (UTC):', dateTime.toISOString());
+
+        // Create new reminder with the correct schema fields
+        console.log('💾 Saving reminder to database...');
+        const reminder = await db.insert(reminders).values({
+            id: uuidv4(),
+            userId,
+            todoId,
+            title,
+            description,
+            reminderTime: dateTime,
+            message,
+            summary,
+            status: 'pending',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+        }).returning();
+
+        console.log('✅ Reminder created successfully:', {
+            id: reminder[0].id,
+            title: reminder[0].title,
+            reminderTime: reminder[0].reminderTime.toISOString()
+        });
+
+        return NextResponse.json(reminder[0]);
+    } catch (error) {
+        console.error('❌ Error creating reminder:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Failed to create reminder' },
+            { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
+        );
     }
-
-    // Convert the time string using the same date conversion logic
-    console.log('⏰ Converting time string:', timeStr);
-    const { text: dateResult } = await generateText({
-      model: openai('gpt-4.1-nano'),
-      prompt: `${timeStr}\nUser timezone: ${userTimezone}`,
-      system: `### Convert Relative Time Expressions to Specific Date & Time Strings
-
-The current date and time in the user's timezone (${userTimezone}) is:
-
-${new Date().toLocaleString('en-US', { 
-  timeZone: userTimezone,
-  month: 'long',
-  day: 'numeric',
-  year: 'numeric',
-  hour: 'numeric',
-  minute: '2-digit',
-  hour12: true
-})}
-
-The day of the week is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, weekday: 'long' })}
-The month is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, month: 'long' })}
-The year is ${new Date().getFullYear()}
-The time is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
-
----
-
-### ✅ Output Format:
-- Convert the input time to UTC
-- Date: "Month Day, Year"
-- Time: "HH:MM AM/PM UTC"
-- If time is **not** mentioned, default to 9:00 AM in the user's timezone
-- ONLY RESPOND WITH THE TIME, IN THIS FORMAT:
-
-\`\`\`
-<TEXT>
-Converting "${timeStr}" from ${userTimezone} to UTC
-</TEXT>
-<TIME>April 21, 2025, 9:00 PM UTC</TIME>
-\`\`\``,
-    });
-
-    console.log('🔍 Parsing date from AI response...');
-    // Extract the date/time from the response
-    const timeMatch = dateResult.match(/<TIME>(.*?)<\/TIME>/);
-    if (!timeMatch) {
-      console.error('❌ Invalid date format in AI response');
-      throw new Error('Invalid date format in AI response');
-    }
-
-    const dateTimeStr = timeMatch[1];
-    const dateTime = new Date(dateTimeStr);
-    console.log('📅 Parsed reminder time (UTC):', dateTime.toISOString());
-
-    // Create new reminder with the correct schema fields
-    console.log('💾 Saving reminder to database...');
-    const reminder = await db.insert(reminders).values({
-      id: uuidv4(),
-      userId,
-      todoId,
-      title,
-      description,
-      reminderTime: dateTime,
-      message,
-      summary,
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    }).returning();
-
-    console.log('✅ Reminder created successfully:', {
-      id: reminder[0].id,
-      title: reminder[0].title,
-      reminderTime: reminder[0].reminderTime.toISOString()
-    });
-
-    return NextResponse.json(reminder[0]);
-  } catch (error) {
-    console.error('❌ Error creating reminder:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create reminder' },
-      { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
-    );
-  }
 }
 
 // Fetches all reminders for the authenticated user
 // Optional: status query parameter to filter by reminder status
 // Returns: array of reminder objects
 export async function GET(req: Request) {
-  try {
-    const userId = await checkAuth();
-    const url = new URL(req.url);
-    const status = url.searchParams.get('status') as 'pending' | 'sent' | 'cancelled' | null;
+    try {
+        const userId = await checkAuth();
+        const url = new URL(req.url);
+        const status = url.searchParams.get('status') as 'pending' | 'sent' | 'cancelled' | null;
 
-    const query = status 
-      ? db.select().from(reminders).where(and(eq(reminders.userId, userId), eq(reminders.status, status)))
-      : db.select().from(reminders).where(eq(reminders.userId, userId));
+        const query = status
+            ? db.select().from(reminders).where(and(eq(reminders.userId, userId), eq(reminders.status, status)))
+            : db.select().from(reminders).where(eq(reminders.userId, userId));
 
-    const userReminders = await query;
-    return NextResponse.json(userReminders);
-  } catch (error) {
-    console.error('Error fetching reminders:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch reminders' },
-      { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
-    );
-  }
+        const userReminders = await query;
+        return NextResponse.json(userReminders);
+    } catch (error) {
+        console.error('Error fetching reminders:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Failed to fetch reminders' },
+            { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
+        );
+    }
 }
 
 // Updates a reminder's status
@@ -271,31 +271,31 @@ export async function GET(req: Request) {
 // Status can be: 'pending', 'sent', or 'cancelled'
 // Returns: the updated reminder object
 export async function PATCH(req: Request) {
-  try {
-    const userId = await checkAuth();
-    const { id, status } = await req.json();
+    try {
+        const userId = await checkAuth();
+        const { id, status } = await req.json();
 
-    const updatedReminder = await db
-      .update(reminders)
-      .set({
-        status: status as 'pending' | 'sent' | 'cancelled',
-        updatedAt: new Date(),
-      })
-      .where(and(eq(reminders.id, id), eq(reminders.userId, userId)))
-      .returning();
+        const updatedReminder = await db
+            .update(reminders)
+            .set({
+                status: status as 'pending' | 'sent' | 'cancelled',
+                updatedAt: new Date(),
+            })
+            .where(and(eq(reminders.id, id), eq(reminders.userId, userId)))
+            .returning();
 
-    if (!updatedReminder.length) {
-      return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
+        if (!updatedReminder.length) {
+            return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(updatedReminder[0]);
+    } catch (error) {
+        console.error('Error updating reminder:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Failed to update reminder' },
+            { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
+        );
     }
-
-    return NextResponse.json(updatedReminder[0]);
-  } catch (error) {
-    console.error('Error updating reminder:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update reminder' },
-      { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
-    );
-  }
 }
 
 // Deletes a reminder
@@ -303,25 +303,25 @@ export async function PATCH(req: Request) {
 // Only allows deletion if the user owns the reminder
 // Returns: the deleted reminder object
 export async function DELETE(req: Request) {
-  try {
-    const userId = await checkAuth();
-    const { id } = await req.json();
+    try {
+        const userId = await checkAuth();
+        const { id } = await req.json();
 
-    const deletedReminder = await db
-      .delete(reminders)
-      .where(and(eq(reminders.id, id), eq(reminders.userId, userId)))
-      .returning();
+        const deletedReminder = await db
+            .delete(reminders)
+            .where(and(eq(reminders.id, id), eq(reminders.userId, userId)))
+            .returning();
 
-    if (!deletedReminder.length) {
-      return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
+        if (!deletedReminder.length) {
+            return NextResponse.json({ error: 'Reminder not found' }, { status: 404 });
+        }
+
+        return NextResponse.json(deletedReminder[0]);
+    } catch (error) {
+        console.error('Error deleting reminder:', error);
+        return NextResponse.json(
+            { error: error instanceof Error ? error.message : 'Failed to delete reminder' },
+            { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
+        );
     }
-
-    return NextResponse.json(deletedReminder[0]);
-  } catch (error) {
-    console.error('Error deleting reminder:', error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete reminder' },
-      { status: error instanceof Error && error.message === 'Authentication required' ? 401 : 500 }
-    );
-  }
 } 

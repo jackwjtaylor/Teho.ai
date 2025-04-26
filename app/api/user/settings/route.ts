@@ -10,6 +10,7 @@ const settingsSchema = z.object({
   reminderMinutes: z.number().int().min(1).max(10080), // Max 1 week in minutes
   aiSuggestedReminders: z.boolean(),
   weeklyReview: z.boolean(),
+  timezone: z.string().min(1), // Add timezone validation
 });
 
 export async function GET(req: Request) {
@@ -25,10 +26,12 @@ export async function GET(req: Request) {
 
     if (!settings) {
       // Return default settings if none exist
+      const browserTimezone = req.headers.get('x-timezone') || 'UTC';
       return NextResponse.json({
         reminderMinutes: 30,
         aiSuggestedReminders: false,
         weeklyReview: false,
+        timezone: browserTimezone,
       });
     }
 
@@ -60,7 +63,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { reminderMinutes, aiSuggestedReminders, weeklyReview } = validationResult.data;
+    const { reminderMinutes, aiSuggestedReminders, weeklyReview, timezone } = validationResult.data;
 
     // Check if settings exist
     const existingSettings = await db.query.userSettings.findFirst({
@@ -74,6 +77,7 @@ export async function POST(req: Request) {
           reminderMinutes,
           aiSuggestedReminders,
           weeklyReview,
+          timezone,
           updatedAt: new Date(),
         })
         .where(eq(userSettings.userId, session.user.id));
@@ -84,6 +88,7 @@ export async function POST(req: Request) {
         reminderMinutes,
         aiSuggestedReminders,
         weeklyReview,
+        timezone,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -8,6 +8,8 @@ import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { getBrowserTimezone, addTimezoneHeader } from "@/lib/timezone-utils"
 
 interface SettingsDialogProps {
   open: boolean
@@ -20,8 +22,39 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const [settings, setSettings] = useState({
     reminderMinutes: 30,
     aiSuggestedReminders: false,
-    weeklyReview: false
+    weeklyReview: false,
+    timezone: getBrowserTimezone()
   })
+
+  // Fetch user settings when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchSettings()
+    }
+  }, [open])
+
+  const fetchSettings = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch("/api/user/settings", {
+        headers: addTimezoneHeader()
+      })
+      if (!response.ok) {
+        throw new Error("Failed to fetch settings")
+      }
+      const data = await response.json()
+      setSettings(data)
+    } catch (error) {
+      console.error("Error fetching settings:", error)
+      toast({
+        title: "Error",
+        description: "Failed to load settings. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const handleSave = async () => {
     try {
@@ -30,6 +63,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...addTimezoneHeader()
         },
         body: JSON.stringify(settings),
       })
@@ -84,6 +118,33 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                   }))}
                   className="w-20 h-10 text-right"
                 />
+              </div>
+
+              <div className="flex items-start justify-between py-3 border-t">
+                <div className="space-y-0.5">
+                  <Label className="text-base font-medium">Timezone</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Your timezone for reminders and due dates
+                  </p>
+                </div>
+                <Select
+                  value={settings.timezone}
+                  onValueChange={(value) => setSettings(prev => ({
+                    ...prev,
+                    timezone: value
+                  }))}
+                >
+                  <SelectTrigger className="w-[240px]">
+                    <SelectValue placeholder="Select timezone" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Intl.supportedValuesOf('timeZone').map((tz) => (
+                      <SelectItem key={tz} value={tz}>
+                        {tz.replace(/_/g, ' ')}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="flex items-start justify-between py-3 border-t">

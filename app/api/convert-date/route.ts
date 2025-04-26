@@ -14,10 +14,6 @@ export async function POST(req: Request) {
       })
     });
     
-    // Only allow authenticated users to use this feature
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
 
     const { text } = await req.json();
     const currentDate = new Date();
@@ -51,6 +47,7 @@ The time is ${currentDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-
 - Date: "Month Day, Year"
 - Time: "HH:MM AM/PM" (always include time if specified or implied)
 - If time is **not** mentioned, default to 9:00 AM.
+- MAKE SURE NOT TO GIVE DATES IN THE PAST, ONLY GIVE DATES IN THE FUTURE.
 - ONLY RESPOND WITH THE TIME, IN THIS FORMAT:
 
 \`\`\`
@@ -105,13 +102,13 @@ The time is ${currentDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-
 `;
 
     const { text: result } = await generateText({
-      model: openai('gpt-4.1-nano'),
+      model: openai('gpt-4.1-mini'),
       prompt: text,
       system: systemPrompt,
     });
 
     // Extract the date/time from the response
-    const timeMatch = result.match(/<TIME>(.*?)<\/TIME>/);
+    const timeMatch = result.match(/<TIME>(.*?)<\/TIME>/i);
     if (!timeMatch) {
       return NextResponse.json({ error: 'Invalid response format' }, { status: 400 });
     }

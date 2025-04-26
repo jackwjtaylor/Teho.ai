@@ -30,6 +30,24 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
     if (step === "urgency") urgencyInputRef.current?.focus()
   }, [step])
 
+  // Add keyboard event listener for urgency control
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (step === "urgency") {
+        if (e.key === "ArrowLeft") {
+          e.preventDefault()
+          incrementUrgency(-0.5)
+        } else if (e.key === "ArrowRight") {
+          e.preventDefault()
+          incrementUrgency(0.5)
+        }
+      }
+    }
+
+    window.addEventListener("keydown", handleKeyDown as any)
+    return () => window.removeEventListener("keydown", handleKeyDown as any)
+  }, [step])
+
   const handleTextSubmit = () => {
     if (text.trim()) {
       setStep("date")
@@ -112,7 +130,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleTextKeyDown}
-              placeholder="What needs to be done?"
+              placeholder="what's on your agenda?"
               className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
               disabled={step !== "text"}
             />
@@ -181,9 +199,14 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                     >
                       <span className="text-gray-600 dark:text-gray-300">-</span>
                     </button>
-                    <div className="w-12 text-center text-gray-900 dark:text-white text-[15px]">
-                      {urgency.toFixed(1)}
-                    </div>
+                    <input
+                      ref={urgencyInputRef}
+                      type="text"
+                      value={urgency.toFixed(1)}
+                      readOnly
+                      onKeyDown={handleUrgencyKeyDown}
+                      className="w-12 text-center text-gray-900 dark:text-white text-[15px] bg-transparent border-none outline-none"
+                    />
                     <button
                       onClick={() => incrementUrgency(0.5)}
                       className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"

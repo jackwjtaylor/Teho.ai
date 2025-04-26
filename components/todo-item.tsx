@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, type KeyboardEvent } from "react"
+import { useState, useRef, type KeyboardEvent, useEffect } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight, RotateCcw } from "lucide-react"
 import type { Todo, Comment } from "@/lib/types"
@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from "uuid"
 import DeleteConfirmation from "./delete-confirmation"
 import RescheduleDialog from "./reschedule-dialog"
 import { ShineBorder } from "@/components/magicui/shine-border"
+import ReminderComment from "./ReminderComment"
+import { useSession } from "@/lib/auth-client"
 
 interface TodoItemProps {
   todo: Todo
@@ -24,12 +26,34 @@ const getTimeColor = (dateStr: string) => {
   const now = new Date();
   const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
-  if (diffHours <= 6) {
-    return "text-red-500 dark:text-red-400"; // Red for within 6 hours
+  if (diffHours <= 0) {
+    return "text-red-500 dark:text-red-400"; // Overdue
+  } else if (diffHours <= 6) {
+    return "text-yellow-600 dark:text-yellow-400"; // Very soon
   } else if (diffHours <= 24) {
-    return "text-yellow-500 dark:text-yellow-400"; // Yellow for within 24 hours
+    return "text-yellow-500 dark:text-yellow-300"; // Within 24 hours
+  } else if (diffHours <= 72) {
+    return "text-green-500 dark:text-green-400"; // Within 3 days
   } else {
-    return "text-green-500 dark:text-green-400"; // Green for more than 24 hours
+    return "text-green-600 dark:text-green-500"; // More than 3 days
+  }
+};
+
+const getStatusStyle = (dateStr: string) => {
+  const dueDate = new Date(dateStr);
+  const now = new Date();
+  const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
+
+  if (diffHours <= 0) {
+    return "bg-gradient-to-r from-red-500/5 to-transparent dark:from-red-950/20 dark:to-transparent border-l-2 border-red-500/50 dark:border-red-500/30";
+  } else if (diffHours <= 6) {
+    return "bg-gradient-to-r from-yellow-500/5 to-transparent dark:from-yellow-900/20 dark:to-transparent border-l-2 border-yellow-500/40 dark:border-yellow-500/30";
+  } else if (diffHours <= 24) {
+    return "bg-gradient-to-r from-yellow-400/5 to-transparent dark:from-yellow-800/20 dark:to-transparent border-l-2 border-yellow-400/40 dark:border-yellow-400/20";
+  } else if (diffHours <= 72) {
+    return "bg-gradient-to-r from-green-400/5 to-transparent dark:from-green-900/20 dark:to-transparent border-l-2 border-green-400/40 dark:border-green-400/20";
+  } else {
+    return "bg-gradient-to-r from-green-500/5 to-transparent dark:from-green-950/20 dark:to-transparent border-l-2 border-green-500/30 dark:border-green-500/20";
   }
 };
 
@@ -65,7 +89,40 @@ const detectReminderCommand = (text: string): { isCommand: boolean; command: str
   };
 };
 
+const TimeDisplay = ({ dueDate }: { dueDate: string }) => {
+  const [timeLeft, setTimeLeft] = useState("");
+  
+  useEffect(() => {
+    const updateTimeLeft = () => {
+      const due = new Date(dueDate);
+      const now = new Date();
+      const diffMs = due.getTime() - now.getTime();
+      const diffHours = diffMs / (1000 * 60 * 60);
+      
+      if (diffHours <= 0) {
+        setTimeLeft(formatDate(dueDate));
+      } else if (diffHours <= 1) {
+        const minutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+        setTimeLeft(`${minutes}m left`);
+      } else {
+        setTimeLeft(formatDate(dueDate));
+      }
+    };
+
+    updateTimeLeft();
+    const interval = setInterval(updateTimeLeft, 1000 * 30); // Update every 30 seconds
+    return () => clearInterval(interval);
+  }, [dueDate]);
+
+  return (
+    <span className={`${getTimeColor(dueDate)} font-medium`}>
+      {timeLeft}
+    </span>
+  );
+};
+
 export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule }: TodoItemProps) {
+  const { data: session } = useSession()
   const [isHovered, setIsHovered] = useState(false)
   const [isExpanded, setIsExpanded] = useState(false)
   const [commentText, setCommentText] = useState("")
@@ -75,8 +132,10 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
   const commentInputRef = useRef<HTMLTextAreaElement>(null)
   const [isReminderCommand, setIsReminderCommand] = useState(false);
   const [reminderCommandType, setReminderCommandType] = useState<string | null>(null);
+  const [isProcessingReminder, setIsProcessingReminder] = useState(false);
 
   const handleReminderCommand = async (text: string) => {
+    setIsProcessingReminder(true);
     const reminderData = {
       todoId: todo.id,
       todoTitle: todo.title,
@@ -98,16 +157,19 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
       }
 
       const reminder = await response.json();
+
+      
       
       // Add a comment to show the reminder was created
       const newComment: Comment = {
         id: uuidv4(),
-        text: reminder.summary,
+        text: reminder.summary + "||" + reminder.id + "||" + reminder.reminderTime,
         todoId: todo.id,
         userId: todo.userId,
         createdAt: new Date(),
       };
       onAddComment(todo.id, newComment);
+      setIsReminderCommand(false); // Remove shine border after success
     } catch (error) {
       console.error('Error creating reminder:', error);
       // Add an error comment
@@ -119,6 +181,8 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
         createdAt: new Date(),
       };
       onAddComment(todo.id, newComment);
+    } finally {
+      setIsProcessingReminder(false);
     }
   };
 
@@ -127,10 +191,10 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
       e.preventDefault();
       const trimmedText = commentText.trim();
       
-      // Check if this is a reminder command
+      // Check if this is a reminder command and user is authenticated
       const { isCommand } = detectReminderCommand(trimmedText);
       
-      if (isCommand) {
+      if (isCommand && session?.user) {
         await handleReminderCommand(trimmedText);
       } else {
         const newComment: Comment = {
@@ -156,17 +220,19 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
     }
   }
 
-  // Modify handleTextareaInput to detect reminder commands
+  // Modify handleTextareaInput to detect reminder commands only for authenticated users
   const handleTextareaInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const textarea = e.target;
     textarea.style.height = 'auto';
     textarea.style.height = `${textarea.scrollHeight}px`;
     setCommentText(textarea.value);
 
-    // Detect if the current input is a reminder command
-    const { isCommand, command } = detectReminderCommand(textarea.value);
-    setIsReminderCommand(isCommand);
-    setReminderCommandType(command);
+    // Only detect reminder commands for authenticated users
+    if (session?.user) {
+      const { isCommand, command } = detectReminderCommand(textarea.value);
+      setIsReminderCommand(isCommand);
+      setReminderCommandType(command);
+    }
   };
 
   return (
@@ -178,9 +244,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
     >
       <motion.div className="flex flex-col relative">
         <div className={`${
-          todo.dueDate && isPastDue(todo.dueDate) 
-            ? "bg-[length:10px_10px] bg-[linear-gradient(45deg,rgba(239,68,68,0.15)_25%,transparent_25%,transparent_50%,rgba(239,68,68,0.15)_50%,rgba(239,68,68,0.15)_75%,transparent_75%,transparent)] dark:bg-[linear-gradient(45deg,rgba(255,0,0,0.15)_25%,transparent_25%,transparent_50%,rgba(255,0,0,0.15)_50%,rgba(255,0,0,0.15)_75%,transparent_75%,transparent)]"
-            : ""
+          todo.dueDate ? getStatusStyle(todo.dueDate) : ""
         }`}>
           <div className="absolute top-2 right-2 z-10">
             <DeleteConfirmation 
@@ -281,9 +345,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
                 <div className="flex items-center mt-1 text-[13px] space-x-1">
                   {todo.dueDate && (
-                    <span className={`${getTimeColor(todo.dueDate)} font-medium`}>
-                      {formatDate(todo.dueDate)}
-                    </span>
+                    <TimeDisplay dueDate={todo.dueDate} />
                   )}
 
                   <div className="flex items-center">
@@ -319,7 +381,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
               }}
               className="border-t border-gray-200 dark:border-white/10 overflow-hidden relative rounded-b-[12px]"
             >
-              {isReminderCommand && (
+              {isReminderCommand && !isProcessingReminder && (
                 <ShineBorder 
                   borderWidth={1}
                   duration={2}
@@ -329,6 +391,11 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                     '--border-radius': '12px',
                   } as React.CSSProperties}
                 />
+              )}
+              {isProcessingReminder && (
+                <div className="absolute inset-0 bg-[#7c5aff]/5 dark:bg-[#7c5aff]/10 rounded-b-[12px] flex items-center justify-center">
+                  <div className="w-5 h-5 border-2 border-[#7c5aff] border-t-transparent rounded-full animate-spin"></div>
+                </div>
               )}
               <motion.div 
                 initial={{ y: -10, opacity: 0 }}
@@ -354,15 +421,10 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
                               <div className="flex-1 min-w-0">
-                                <div className={`text-[15px] ${
-                                  comment.text.startsWith('!!RMD!!') 
-                                    ? 'bg-[#7c5aff]/10 dark:bg-[#7c5aff]/20 px-3 py-2 rounded-md font-medium text-[12px] text-[#7c5aff] dark:text-[#7c5aff]'
-                                    : 'text-gray-700 dark:text-white/80'
-                                } whitespace-pre-wrap break-words`}>
-                                  {comment.text.startsWith('!!RMD!!') 
-                                    ? comment.text.replace('!!RMD!!', '').trim()
-                                    : comment.text}
-                                </div>
+                                <ReminderComment 
+                                  text={comment.text}
+                                  createdAt={comment.createdAt}
+                                />
                                 <div className="flex items-center gap-2 mt-1">
                                   <div className="text-xs text-gray-400 dark:text-white/40">
                                     {comment.user?.name || 'Local User'}
@@ -421,7 +483,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                       value={commentText}
                       onChange={handleTextareaInput}
                       onKeyDown={handleAddComment}
-                      placeholder="Add a comment... (Use !remindme or !rmd for reminders)"
+                      placeholder={session?.user ? "Add a comment... (Use !remindme or !rmd for reminders)" : "Add a comment..."}
                       rows={1}
                       className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-[15px] transition-colors duration-200 resize-none overflow-hidden min-h-[24px] py-0"
                     />

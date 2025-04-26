@@ -3,6 +3,7 @@ import { db } from '@/lib/db';
 import { reminders, users, userSettings } from '@/lib/db/schema';
 import { eq, and, lte } from 'drizzle-orm';
 import { sendEmail } from '@/lib/email';
+import { formatInTimezone } from '@/lib/timezone-utils';
 
 // Vercel cron job handler for checking and sending reminders
 export async function GET(req: Request) {
@@ -52,39 +53,37 @@ export async function GET(req: Request) {
         }
 
         const userTimezone = settings?.timezone || 'UTC';
-        const localTime = reminder.reminderTime.toLocaleString('en-US', {
-          timeZone: userTimezone,
-          month: 'long',
-          day: 'numeric',
-          year: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          timeZoneName: 'short'
-        });
+        const localTime = formatInTimezone(reminder.reminderTime, userTimezone);
 
         // Send the email
-        await sendEmail({
-          to: user.email,
-          subject: `Reminder: ${reminder.title}`,
-          type: 'reminder',
-          data: {
-            todoTitle: reminder.title,
-            dueDate: localTime, // Use the user's local time in the email
-            userName: user.name ?? 'there'
-          }
-        });
+        try {
+          const emailResult = await sendEmail({
+            to: user.email,
+            subject: `you need to do: ${reminder.title.toLowerCase()}`,
+            type: 'reminder',
+            data: {
+              todoTitle: reminder.title,
+              dueDate: new Date(localTime),
+              urgency: 100, // Since this is a reminder, we'll set it to 100% urgency
+              comments: [], // No comments needed for reminder emails
+              userTimeZone: userTimezone
+            }
+          });
 
-        // Update reminder status to sent
-        await db
-          .update(reminders)
-          .set({
-            status: 'sent',
-            updatedAt: new Date()
-          })
-          .where(eq(reminders.id, reminder.id));
+          // Update reminder status to sent
+          await db
+            .update(reminders)
+            .set({
+              status: 'sent',
+              updatedAt: new Date()
+            })
+            .where(eq(reminders.id, reminder.id));
 
-        return reminder.id;
+          return reminder.id;
+        } catch (error) {
+          console.error(`Failed to send email for reminder ${reminder.id}:`, error);
+          return reminder.id;
+        }
       })
     );
 
