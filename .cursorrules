@@ -1,0 +1,9 @@
+This is a Next.js Project, it is using Next.js 15.3.1
+
+It is using Tailwind CSS for styling with a modified shadcn/ui component library.
+
+Check out the components/ui folder to see the components if you are going to create a new component so you can reference the style and reuse the components.
+
+Auth is handled with better-auth. (use context7 via mcp to make any changes to the auth as better-auth is newer and you probably don't know anything about it)
+
+Database is handled with drizzle via neon.tech (postgres) 
