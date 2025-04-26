@@ -43,6 +43,13 @@
       "when": 1745461839273,
       "tag": "0005_rainy_wild_pack",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1745676604822,
+      "tag": "0006_chunky_red_skull",
+      "breakpoints": true
     }
   ]
 }

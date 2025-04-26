@@ -10,6 +10,15 @@ export const users = pgTable("users", {
     updatedAt: timestamp('updated_at').notNull()
 });
 
+export const userSettings = pgTable("user_settings", {
+    userId: text('user_id').primaryKey().references(() => users.id, { onDelete: 'cascade' }),
+    reminderMinutes: integer('reminder_minutes').notNull().default(30),
+    aiSuggestedReminders: boolean('ai_suggested_reminders').notNull().default(false),
+    weeklyReview: boolean('weekly_review').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow()
+});
+
 export const sessions = pgTable("sessions", {
     id: text('id').primaryKey(),
     expiresAt: timestamp('expires_at').notNull(),

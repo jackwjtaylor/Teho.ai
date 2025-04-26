@@ -7,7 +7,8 @@
 - Visual indicators in workspace switcher showing keyboard shortcuts
 
 ### Changed
-- Improved Settings dialog layout and spacing
-  - More compact vertical spacing for better content density
-  - Consistent right-aligned controls for all settings
-  - Enhanced visual hierarchy with refined typography and borders
+- Improved Settings dialog UI:
+  - Made dialog layout more compact and consistent
+  - Aligned all controls to the right side
+  - Improved spacing and visual hierarchy
+  - Enhanced readability of settings options
