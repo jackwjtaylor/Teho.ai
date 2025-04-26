@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
-import { reminders } from '@/lib/db/schema';
+import { reminders, userSettings } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { openai } from '@ai-sdk/openai';
@@ -12,7 +12,7 @@ import { Comment } from '@/lib/types';
 const systemPrompt = `### Generate Reminder Details from Todo Context
 
 You are an AI assistant that helps generate reminder details from user messages. 
-The input will include a todo item's title, its comments, and a reminder command message.
+The input will include a todo item's title, its comments, a reminder command message, and the user's timezone.
 
 Your task is to generate a structured response with the following blocks:
 
@@ -25,8 +25,9 @@ A detailed description of what needs to be done, incorporating context from the 
 </reminder_description>
 
 <reminder_time>
-Extract or infer the time for the reminder from the message. If no specific time is mentioned, suggest a reasonable time based on context.
+Extract or infer the time for the reminder from the message, considering the user's timezone.
 Format: Use natural language that can be parsed by the date conversion API (e.g., "tomorrow at 9am", "in 2 hours", "next Monday at 3pm")
+Important: All times will be stored in UTC, but you should interpret user input based on their timezone.
 </reminder_time>
 
 <reminder_summary>
@@ -41,17 +42,19 @@ A user-friendly summary that will be shown in the comments, explaining when the 
 Todo: "Prepare presentation for client meeting"
 Comments: ["Added initial slides", "Need to include Q2 metrics"]
 Message: "!remindme tomorrow morning to review slides"
+Timezone: "America/New_York"
 
 **Output:**
 <reminder_title>Review Client Presentation Slides</reminder_title>
 <reminder_description>Review the prepared presentation slides for the client meeting, ensuring Q2 metrics are included and all content is finalized.</reminder_description>
-<reminder_time>tomorrow at 9:00 AM</reminder_time>
-<reminder_summary>🔔 Reminder set: I'll remind you to review the presentation slides tomorrow at 9:00 AM</reminder_summary>
+<reminder_time>tomorrow at 9:00 AM America/New_York</reminder_time>
+<reminder_summary>🔔 Reminder set: I'll remind you to review the presentation slides tomorrow at 9:00 AM ET</reminder_summary>
 
 **Input:**
 Todo: "Fix login bug in authentication flow"
 Comments: ["Users getting stuck at OAuth screen", "Need to check token expiration"]
 Message: "!rmd in 2 hours to test fix"
+Timezone: "UTC"
 
 **Output:**
 <reminder_title>Test Authentication Fix</reminder_title>
@@ -69,6 +72,7 @@ Message: "!rmd in 2 hours to test fix"
 - Make summaries user-friendly and clear about timing
 - Always use the 🔔 emoji in summaries
 - For unclear time expressions, use a reasonable default based on context
+- Always consider the user's timezone when interpreting time expressions
 `;
 
 // Checks if the user is authenticated and returns their userId
@@ -104,15 +108,23 @@ export async function POST(req: Request) {
     const userId = await checkAuth();
     const { todoId, todoTitle, comments, message } = (await req.json()) as ReminderRequest;
 
+    // Get user's timezone setting
+    const userSetting = await db.query.userSettings.findFirst({
+      where: eq(userSettings.userId, userId)
+    });
+
+    const userTimezone = userSetting?.timezone || 'UTC';
+
     console.log('📝 Received reminder request:', {
       todoTitle,
       commentsCount: comments.length,
-      message
+      message,
+      timezone: userTimezone
     });
 
     // Generate reminder details using AI
     console.log('🤖 Generating reminder details with AI...');
-    const prompt = `Todo: "${todoTitle}"\nComments: ${JSON.stringify(comments.map((c: Comment) => c.text))}\nMessage: "${message}"`;
+    const prompt = `Todo: "${todoTitle}"\nComments: ${JSON.stringify(comments.map((c: Comment) => c.text))}\nMessage: "${message}"\nTimezone: "${userTimezone}"`;
     
     const { text: aiResponse } = await generateText({
       model: openai('gpt-4.1-nano'),
@@ -149,12 +161,13 @@ export async function POST(req: Request) {
     console.log('⏰ Converting time string:', timeStr);
     const { text: dateResult } = await generateText({
       model: openai('gpt-4.1-nano'),
-      prompt: timeStr,
-      system: `### Convert Relative Time Expressions to Specific Date & Time Strings  
+      prompt: `${timeStr}\nUser timezone: ${userTimezone}`,
+      system: `### Convert Relative Time Expressions to Specific Date & Time Strings
 
-The current date and time is 
+The current date and time in the user's timezone (${userTimezone}) is:
 
 ${new Date().toLocaleString('en-US', { 
+  timeZone: userTimezone,
   month: 'long',
   day: 'numeric',
   year: 'numeric',
@@ -163,26 +176,25 @@ ${new Date().toLocaleString('en-US', {
   hour12: true
 })}
 
-The day of the week is ${new Date().toLocaleString('en-US', { weekday: 'long' })}
-
-The month is ${new Date().toLocaleString('en-US', { month: 'long' })}
-
+The day of the week is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, weekday: 'long' })}
+The month is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, month: 'long' })}
 The year is ${new Date().getFullYear()}
-
-The time is ${new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+The time is ${new Date().toLocaleString('en-US', { timeZone: userTimezone, hour: 'numeric', minute: '2-digit', hour12: true })}
 
 ---
 
 ### ✅ Output Format:
+- Convert the input time to UTC
 - Date: "Month Day, Year"
-- Time: "HH:MM AM/PM" (always include time if specified or implied)
-- If time is **not** mentioned, default to 9:00 AM.
+- Time: "HH:MM AM/PM UTC"
+- If time is **not** mentioned, default to 9:00 AM in the user's timezone
 - ONLY RESPOND WITH THE TIME, IN THIS FORMAT:
 
 \`\`\`
 <TEXT>
+Converting "${timeStr}" from ${userTimezone} to UTC
 </TEXT>
-<TIME>April 21, 2025, 9:00 PM</TIME>
+<TIME>April 21, 2025, 9:00 PM UTC</TIME>
 \`\`\``,
     });
 
@@ -196,7 +208,7 @@ The time is ${new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-d
 
     const dateTimeStr = timeMatch[1];
     const dateTime = new Date(dateTimeStr);
-    console.log('📅 Parsed reminder time:', dateTime.toLocaleString());
+    console.log('📅 Parsed reminder time (UTC):', dateTime.toISOString());
 
     // Create new reminder with the correct schema fields
     console.log('💾 Saving reminder to database...');
@@ -217,7 +229,7 @@ The time is ${new Date().toLocaleString('en-US', { hour: 'numeric', minute: '2-d
     console.log('✅ Reminder created successfully:', {
       id: reminder[0].id,
       title: reminder[0].title,
-      reminderTime: reminder[0].reminderTime.toLocaleString()
+      reminderTime: reminder[0].reminderTime.toISOString()
     });
 
     return NextResponse.json(reminder[0]);
