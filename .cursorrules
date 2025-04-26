@@ -15,3 +15,4 @@
   - For each API route, make sure it checks for a session (if applicable) and if it is checking for a session make sure that it checks if the user is authenticated and valid. 
 - In the root folder, there is a file called changelog.md. If you have implemented a change or see a new change, ask the user if you would like to add it to the changelog. Give the user in a markdown block what you would like to add to the changelog. Remember keep it concise and to the point. Never overwrite old changelog entries. Always add to the end of the file.
 - Before implementing any changes that might affect other files, please explore the codebase to make sure that it is not already implemented or that it is not already in the works.
+- DO NOT GIT COMMIT UNLESS I APPROVE OF IT. You can suggest a commit but do not commit it without my approval.

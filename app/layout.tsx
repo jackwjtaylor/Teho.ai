@@ -5,6 +5,13 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { Analytics } from "@vercel/analytics/react"
 import { PostHogProvider } from "@/components/PostHogProvider"
 import ToastProvider from "@/components/toast-provider"
+import { Outfit } from "next/font/google"
+
+const outfit = Outfit({
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  variable: '--font-outfit',
+})
 
 export const metadata: Metadata = {
   title: "exon todo",
@@ -18,9 +25,6 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-      </head>
       <body suppressHydrationWarning>
         <PostHogProvider>
           <ThemeProvider attribute="class" defaultTheme="dark" enableSystem>

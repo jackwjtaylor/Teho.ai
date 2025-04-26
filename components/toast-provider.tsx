@@ -8,6 +8,8 @@ export default function ToastProvider() {
   return (
     <SonnerToaster
       position="top-center"
+      offset="24px"
+      gap={16}
       toastOptions={{
         style: {
           background: '#131316',
@@ -28,7 +30,7 @@ export default function ToastProvider() {
           height: '40px',
           padding: '0 16px',
           fontSize: '13px',
-          fontFamily: 'Geist, sans-serif',
+          fontFamily: 'Outfit, sans-serif',
           gap: '8px',
           display: 'flex',
           alignItems: 'center',
@@ -45,4 +47,4 @@ export default function ToastProvider() {
       }}
     />
   )
-} 
+}

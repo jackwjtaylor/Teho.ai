@@ -73,7 +73,7 @@ export default function RescheduleDialog({ isOpen, onClose, onConfirm, currentDa
               onChange={(e) => setDateInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="tomorrow, next week, etc."
-              className="flex-1 bg-transparent border border-white/10 rounded-[6px] px-3 h-8 text-white text-[13px] font-normal font-['Geist'] leading-tight placeholder-gray-500 focus:outline-none focus:border-[#7c5aff]/50"
+              className="flex-1 bg-transparent border border-white/10 rounded-[6px] px-3 h-8 text-white text-[13px] font-normal font-['Outfit'] leading-tight placeholder-gray-500 focus:outline-none focus:border-[#7c5aff]/50"
               disabled={isLoading}
             />
             {isLoading ? (
