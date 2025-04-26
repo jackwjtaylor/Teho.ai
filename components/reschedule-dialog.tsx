@@ -5,8 +5,10 @@ import { IOSpinner } from "./spinner"
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
 
 interface RescheduleDialogProps {
   isOpen: boolean
@@ -52,15 +54,17 @@ export default function RescheduleDialog({ isOpen, onClose, onConfirm, currentDa
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="p-0 bg-[#131316] border-0 shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)]">
-        <div className="flex flex-col p-5">
-          <div className="flex items-center gap-2 mb-4">
+      <DialogContent>
+        <DialogHeader>
+          <div className="flex items-center gap-2">
             <div className="p-0.5 bg-[#7c5aff]/25 rounded-[99px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] shadow-[0px_1px_2px_-0.5px_rgba(0,0,0,0.06)] shadow-[0px_0px_0px_1px_rgba(0,0,0,0.16)] border border-[#7c5aff]/25 justify-center items-center gap-1.5 flex overflow-hidden">
               <RotateCcw className="w-3.5 h-3.5 text-[#7c5aff]" />
             </div>
-            <DialogTitle className="text-white text-[13px] font-normal font-['Geist'] leading-tight">Reschedule to:</DialogTitle>
+            <DialogTitle>Reschedule to:</DialogTitle>
           </div>
+        </DialogHeader>
           
+        <div className="px-5 pb-5">
           <div className="flex items-center gap-3">
             <input
               ref={inputRef}
@@ -77,13 +81,13 @@ export default function RescheduleDialog({ isOpen, onClose, onConfirm, currentDa
                 <IOSpinner />
               </div>
             ) : (
-              <button
+              <Button
                 onClick={handleSubmit}
                 disabled={!dateInput.trim()}
-                className="h-8 px-4 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] justify-center items-center inline-flex overflow-hidden cursor-pointer hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-[#7c5aff] disabled:hover:to-[#6c47ff]"
+                weight="medium"
               >
-                <div className="text-white text-[13px] font-medium font-['Geist'] leading-tight">Set</div>
-              </button>
+                Set
+              </Button>
             )}
           </div>
         </div>
