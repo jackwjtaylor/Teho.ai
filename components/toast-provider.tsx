@@ -33,7 +33,7 @@ export default function ToastProvider() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          minWidth: '200px',
+          minWidth: '300px',
         },
         unstyled: true,
         duration: 3000,

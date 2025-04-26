@@ -65,16 +65,21 @@ export default function WorkspaceSwitcher({
             exit={{ opacity: 0, y: -4 }}
             className="absolute top-full left-0 mt-2 w-48 py-1 bg-white dark:bg-[#131316] rounded-lg shadow-lg dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] z-50"
           >
-            {workspaces.map((workspace) => (
+            {workspaces.map((workspace, index) => (
               <div key={workspace.id} className="flex items-center">
                 <button
                   onClick={() => {
                     onSwitch(workspace.id)
                     setIsOpen(false)
                   }}
-                  className="flex-1 px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors duration-200"
+                  className="flex-1 px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors duration-200 flex items-center justify-between"
                 >
-                  {workspace.name}
+                  <span>{workspace.name}</span>
+                  {index < 9 && (
+                    <kbd className="ml-2 px-1.5 py-0.5 text-xs bg-gray-100 dark:bg-white/10 rounded text-gray-500 dark:text-gray-400 font-mono">
+                      ⌃⌘{index + 1}
+                    </kbd>
+                  )}
                 </button>
                 {canDeleteWorkspace(workspace) && (
                   <button
