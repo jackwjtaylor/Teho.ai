@@ -91,3 +91,17 @@ export const comments = pgTable("comments", {
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
 });
+
+export const reminders = pgTable("reminders", {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    todoId: text('todo_id').notNull().references(() => todos.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    description: text('description').notNull(),
+    reminderTime: timestamp('reminder_time').notNull(),
+    message: text('message').notNull(),
+    summary: text('summary').notNull(),
+    status: text('status', { enum: ['pending', 'sent', 'cancelled'] }).notNull().default('pending'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});

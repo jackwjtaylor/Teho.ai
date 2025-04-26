@@ -1,16 +1,22 @@
 import type { Config } from "tailwindcss"
+
 const config: Config = {
-  darkMode: ["class"],
   content: [
-    "app/**/*.{ts,tsx}",
-    "components/**/*.{ts,tsx}",
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
     "./app/**/*.{js,ts,jsx,tsx,mdx}",
-    "*.{js,ts,jsx,tsx,mdx}",
   ],
   theme: {
     extend: {
+      animation: {
+        "shine": "shine var(--duration) cubic-bezier(0.4, 0, 0.2, 1) infinite",
+      },
+      keyframes: {
+        shine: {
+          "0%": { backgroundPosition: "150% 150%" },
+          "100%": { backgroundPosition: "-50% -50%" },
+        },
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -53,6 +59,8 @@ const config: Config = {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  darkMode: ["class"],
+  plugins: [],
 }
+
 export default config

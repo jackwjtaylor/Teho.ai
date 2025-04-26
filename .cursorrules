@@ -18,4 +18,4 @@
 - Before implementing any changes that might affect other files, please explore the codebase to make sure that it is not already implemented or that it is not already in the works.
 - DO NOT GIT COMMIT UNLESS I APPROVE OF IT. You can suggest a commit but do not commit it without my approval. When I ask you to prepare or get a commit ready always run `git add .` and not `git add (individual files)`.
 - DO NOT PUSH TO DB UNLESS I APPROVE OF IT. You can suggest a push but do not push it without my approval.
-- You will not need to make any migrations, this is handled by the drizzle-kit CLI. Use the commands `bunx drizzle-kit generate` and `bunx drizzle-kit migrate` to generate and migrate the database respectively.
+- You will not need to make any migrations, this is handled by the drizzle-kit CLI. Use the commands `bunx drizzle-kit generate`.

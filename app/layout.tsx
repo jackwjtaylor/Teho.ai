@@ -1,5 +1,6 @@
 import type React from "react"
 import "./globals.css"
+import "@/styles/animations.css"
 import type { Metadata } from "next"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Analytics } from "@vercel/analytics/react"
@@ -14,8 +15,8 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: "exon todo",
-  description: "the simplest todo app",
+  title: "agenda.dev",
+  description: "the world's most powerful todo list",
 }
 
 export default function RootLayout({

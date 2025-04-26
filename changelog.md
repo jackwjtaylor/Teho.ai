@@ -5,6 +5,12 @@
 ### Added
 - Keyboard shortcuts (Ctrl+Cmd+[1-9]) for quick workspace switching
 - Visual indicators in workspace switcher showing keyboard shortcuts
+- AI-powered reminder system:
+  - Support for !remindme and !rmd commands in comments
+  - Natural language time parsing (e.g., "tomorrow at 9am", "in 2 hours")
+  - Smart reminder generation with context-aware titles and descriptions
+  - Visual feedback with glowing border when typing reminder commands
+  - Automatic summary generation for reminder confirmations
 
 ### Changed
 - Improved Settings dialog UI:
@@ -12,3 +18,10 @@
   - Aligned all controls to the right side
   - Improved spacing and visual hierarchy
   - Enhanced readability of settings options
+- Enhanced database schema for reminders with additional fields for better organization
+- Improved error handling and validation in reminder creation process
+
+### Technical
+- Integrated GPT-4.1-nano model for natural language processing
+- Implemented structured AI response parsing with validation
+- Consolidated time parsing logic within reminders API for better efficiency
