@@ -321,14 +321,12 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                 className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
                 disabled={isProcessing || (pendingFields.includes("urgency") && pendingFields.length === 1)}
               />
-              {inputValue.trim() && !isProcessing && (
-                <button
-                  type="submit"
-                  className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
-                >
-                  <ArrowUp className="w-5 h-5 text-gray-400 dark:text-white/50" />
-                </button>
-              )}
+              <button
+                type="submit"
+                className={`p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors ${!inputValue.trim() || isProcessing ? 'opacity-0' : 'opacity-100'}`}
+              >
+                <ArrowUp className="w-4 h-4 text-gray-400 dark:text-white/50" />
+              </button>
               {isProcessing && (
                 <div className="w-6 h-6 flex items-center justify-center">
                   <IOSpinner />
