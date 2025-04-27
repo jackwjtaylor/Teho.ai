@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
@@ -20,7 +20,8 @@ interface SettingsDialogProps {
 
 export default function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { toast } = useToast()
-  const [isLoading, setIsLoading] = useState(false)
+  const [isFetching, setIsFetching] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
   const [settings, setSettings] = useState({
     reminderMinutes: 30,
     aiSuggestedReminders: false,
@@ -28,16 +29,22 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     timezone: getBrowserTimezone()
   })
 
-  // Fetch user settings when dialog opens
+  // Prefetch settings on mount so dialog opens immediately with data
   useEffect(() => {
-    if (open) {
-      fetchSettings()
-    }
-  }, [open])
+    fetchSettings()
+  }, [])
+
+  // Precompute timezone options with local timezone first
+  const allTimezones = useMemo(() => Intl.supportedValuesOf("timeZone"), [])
+  const localTimezone = getBrowserTimezone()
+  const timezoneOptions = useMemo(() => {
+    const otherTzs = allTimezones.filter((tz) => tz !== localTimezone)
+    return [localTimezone, ...otherTzs]
+  }, [allTimezones, localTimezone])
 
   const fetchSettings = async () => {
     try {
-      setIsLoading(true)
+      setIsFetching(true)
       const response = await fetch("/api/user/settings", {
         headers: addTimezoneHeader()
       })
@@ -54,13 +61,13 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsFetching(false)
     }
   }
 
   const handleSave = async () => {
     try {
-      setIsLoading(true)
+      setIsSaving(true)
       const response = await fetch("/api/user/settings", {
         method: "POST",
         headers: {
@@ -85,7 +92,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         variant: "destructive",
       })
     } finally {
-      setIsLoading(false)
+      setIsSaving(false)
     }
   }
 
@@ -143,7 +150,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                     <SelectValue placeholder="Select timezone" />
                   </SelectTrigger>
                   <SelectContent>
-                    {Intl.supportedValuesOf('timeZone').map((tz) => (
+                    {timezoneOptions.map((tz) => (
                       <SelectItem key={tz} value={tz}>
                         {tz.replace(/_/g, ' ')}
                       </SelectItem>
@@ -230,10 +237,10 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
           </Button>
           <Button 
             onClick={handleSave} 
-            disabled={isLoading}
+            disabled={isSaving}
             className="min-w-[100px]"
           >
-            {isLoading ? (
+            {isSaving ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
               "Save Changes"

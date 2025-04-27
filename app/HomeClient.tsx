@@ -18,6 +18,7 @@ import WorkspaceSwitcher from "@/components/workspace-switcher"
 import NewWorkspaceDialog from "@/components/new-workspace-dialog"
 import CommandPalette from "@/components/command-palette"
 import { toast } from 'sonner'
+import { addTimezoneHeader } from "@/lib/timezone-utils"
 
 interface HomeClientProps {
     initialTodos: Todo[]
@@ -57,6 +58,34 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
     const { data: session } = useSession()
+
+    // Initialize user settings on first load: if no DB record exists, seed with defaults (browser timezone)
+    useEffect(() => {
+        if (!session?.user) return
+        const initSettings = async () => {
+            try {
+                const res = await fetch('/api/user/settings', { headers: addTimezoneHeader() })
+                if (!res.ok) return
+                const data = await res.json() as Record<string, any>
+                // If no userId field, the GET returned defaults
+                if (!('userId' in data)) {
+                    await fetch('/api/user/settings', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', ...addTimezoneHeader() },
+                        body: JSON.stringify({
+                            reminderMinutes: data.reminderMinutes,
+                            aiSuggestedReminders: data.aiSuggestedReminders,
+                            weeklyReview: data.weeklyReview,
+                            timezone: data.timezone,
+                        }),
+                    })
+                }
+            } catch (error) {
+                console.error('Failed to initialize user settings:', error)
+            }
+        }
+        initSettings()
+    }, [session?.user])
 
     // Clear todos and localStorage on signout
     useEffect(() => {
