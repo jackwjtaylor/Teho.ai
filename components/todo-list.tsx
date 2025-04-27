@@ -78,11 +78,13 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
         </div>
         <AnimatePresence mode="popLayout">
           {getColumnTodos(0, 1).map((todo) => (
-            <motion.div key={todo.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.2 }}
+            <motion.div
+              key={todo.id}
+              layout
+              initial={{ opacity: 0, y: 20, scale: 0.9 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -20, scale: 0.8 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
             >
               <TodoItem 
                 todo={todo} 
@@ -111,10 +113,11 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
                 {colTodos.map(todo => (
                   <motion.div
                     key={todo.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
+                    layout
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   >
                     <TodoItem 
                       todo={todo} 
@@ -150,10 +153,11 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
                 {colTodos.map(todo => (
                   <motion.div
                     key={todo.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    transition={{ duration: 0.2 }}
+                    layout
+                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: -20, scale: 0.8 }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                   >
                     <TodoItem 
                       todo={todo} 

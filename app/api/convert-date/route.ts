@@ -56,6 +56,8 @@ The time is ${currentDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-
 <TIME>April 21, 2025, 9:00 PM</TIME>
 \`\`\`
 
+YOU MUST USE THE <TIME></TIME> TAG TO RETURN THE DATE AND TIME. YOU CANNOT USE ANY OTHER TAGS TO RETURN THE DATE AND TIME.
+
 ---
 
 ### ✅ Examples:
@@ -110,6 +112,7 @@ The time is ${currentDate.toLocaleString('en-US', { hour: 'numeric', minute: '2-
     // Extract the date/time from the response
     const timeMatch = result.match(/<TIME>(.*?)<\/TIME>/i);
     if (!timeMatch) {
+      console.log('Invalid response format:', result);
       return NextResponse.json({ error: 'Invalid response format' }, { status: 400 });
     }
 

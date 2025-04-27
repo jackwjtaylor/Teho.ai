@@ -242,7 +242,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <motion.div className="flex flex-col relative">
+      <motion.div layout className="flex flex-col relative">
         <div className={`${
           todo.dueDate ? getStatusStyle(todo.dueDate) : ""
         }`}>
@@ -277,7 +277,19 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   todo.completed ? "bg-[#7c5aff]/20 border-[#7c5aff]/30" : "border-gray-300 dark:border-white/30"
                 } flex items-center justify-center transition-colors`}
               >
-                {todo.completed && <Check className="w-3 h-3 text-[#7c5aff]" />}
+                <AnimatePresence>
+                  {todo.completed && (
+                    <motion.div
+                      key="check"
+                      initial={{ scale: 0, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      exit={{ scale: 0, opacity: 0 }}
+                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    >
+                      <Check className="w-3 h-3 text-[#7c5aff]" />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </button>
 
               <div className="flex-1 min-w-0">
