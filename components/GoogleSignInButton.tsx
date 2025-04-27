@@ -5,7 +5,7 @@ export default function GoogleSignInButton() {
   const handleGoogleSignIn = async () => {
     await signIn.social({
       provider: 'google',
-      callbackURL: '/dashboard', // Redirect to dashboard after sign in
+      callbackURL: '/', // Redirect to dashboard after sign in
     });
   };
 

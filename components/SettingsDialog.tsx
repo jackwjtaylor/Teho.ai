@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast"
 import { Loader2 } from "lucide-react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getBrowserTimezone, addTimezoneHeader } from "@/lib/timezone-utils"
+import Link from "next/link"
+import LinkedAccountsSection from "./LinkedAccountsSection"
 
 interface SettingsDialogProps {
   open: boolean
@@ -89,12 +91,15 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[70%] sm:h-[80%] overflow-y-auto bg-background">
-        <DialogHeader className="px-6 pt-4 pb-3 border-b">
+      <DialogContent className="sm:max-w-[70%] sm:h-[80%] flex flex-col overflow-hidden bg-background">
+        <DialogHeader className="px-6 pt-4 pb-3 border-b flex-shrink-0">
           <DialogTitle className="text-2xl font-semibold tracking-tight">Settings</DialogTitle>
         </DialogHeader>
         
-        <div className="px-6 py-6 space-y-8">
+        <div className="px-6 py-6 space-y-8 overflow-y-auto flex-grow">
+          {/* Linked Accounts Section */}
+          <LinkedAccountsSection />
+
           {/* Email Alerts Section */}
           <div className="space-y-6">
             <h2 className="text-xl font-semibold tracking-tight">Email Alerts</h2>
@@ -190,9 +195,32 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
               </p>
             </div>
           </div>
+
+          {/* Legal Section */}
+          <div className="space-y-3">
+            <h2 className="text-xl font-semibold tracking-tight">Legal</h2>
+            <div className="space-y-2">
+              <div className="rounded-lg border bg-muted/5 p-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-medium">Terms of Service</p>
+                  <Link href="/terms" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
+                    View
+                  </Link>
+                </div>
+              </div>
+              <div className="rounded-lg border bg-muted/5 p-4">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-medium">Privacy Policy</p>
+                  <Link href="/privacy" className="text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
+                    View
+                  </Link>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-end items-center gap-3 px-6 py-3 border-t bg-muted/5">
+        <div className="flex justify-end items-center gap-3 px-6 py-3 border-t bg-muted/5 flex-shrink-0">
           <Button 
             variant="outline" 
             onClick={() => onOpenChange(false)}

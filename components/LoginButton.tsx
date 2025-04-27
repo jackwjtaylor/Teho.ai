@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { useSession, authClient } from "@/lib/auth-client"
 import { User, Settings, LogOut, Bell } from "lucide-react"
-import { FaGoogle } from "react-icons/fa"
+import { FaUser } from "react-icons/fa"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,6 +15,10 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import SettingsDialog from "./SettingsDialog"
 import RemindersDialog from "./RemindersDialog"
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog"
+import GoogleSignInButton from "./GoogleSignInButton"
+import GithubSignInButton from "./GithubSignInButton"
+import TwitterSignInButton from "./TwitterSignInButton"
 
 export default function LoginButton() {
   const { data: session } = useSession()
@@ -93,12 +97,28 @@ export default function LoginButton() {
   }
 
   return (
-    <button
-      onClick={() => authClient.signIn.social({ provider: 'google' })}
-      className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] transition-colors duration-200"
-    >
-      <FaGoogle className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-      <span className="text-sm text-gray-900 dark:text-white">Sign In</span>
-    </button>
+    <Dialog>
+      <DialogTrigger asChild>
+        <button
+          className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] transition-colors duration-200"
+        >
+          <FaUser className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+          <span className="text-sm text-gray-900 dark:text-white">Sign In</span>
+        </button>
+      </DialogTrigger>
+
+      <DialogContent className="sm:max-w-sm w-full p-2">
+        <DialogHeader>
+          <DialogTitle>Sign in to agenda.dev</DialogTitle>
+          <DialogDescription>Choose a login method</DialogDescription>
+        </DialogHeader>
+
+        <div className="flex flex-col gap-2 pt-2">
+          <GoogleSignInButton />
+          <GithubSignInButton />
+          <TwitterSignInButton />
+        </div>
+      </DialogContent>
+    </Dialog>
   )
 }

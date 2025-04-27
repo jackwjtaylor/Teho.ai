@@ -58,6 +58,24 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
     const { data: session } = useSession()
 
+    // Clear todos and localStorage on signout
+    useEffect(() => {
+        if (!session?.user) {
+            // Clear todos state
+            setTodos([])
+            setWorkspaces([])
+            setCurrentWorkspace('personal')
+            
+            // Clear localStorage
+            localStorage.removeItem('todos')
+            localStorage.removeItem('currentWorkspace')
+            
+            // Optional: Clear other localStorage items if needed
+            localStorage.removeItem('showCompleted')
+            localStorage.removeItem('isTableView')
+        }
+    }, [session?.user, setTodos, setCurrentWorkspace])
+
     // Add keyboard shortcut handler for workspace switching
     useEffect(() => {
         // console.log('🎧 Setting up keyboard listener')

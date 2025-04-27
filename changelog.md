@@ -18,6 +18,10 @@
   - User-configurable reminder settings in preferences
   - Beautiful, responsive email templates with consistent branding
   - Support for reminder management (view, cancel, track status)
+- Legal pages:
+  - Terms of Service page with standard legal information
+  - Privacy Policy page outlining data collection and usage practices
+  - Links in settings dialog and footer for easy access
 
 ### Changed
 - Improved Settings dialog UI:
@@ -37,3 +41,13 @@
 - Created timezone utility functions for consistent date/time handling
 - Enhanced database schema with timezone support
 - Added email templates using @react-email/components
+
+## 2023-10-29
+- Added timezone support
+- Improved UI for reminders
+- Bug fixes in todo sorting algorithm
+
+## 2023-10-30
+- Added multi-provider authentication (Google, GitHub, Twitter)
+- Implemented account linking capabilities
+- Created dedicated account management UI in settings
