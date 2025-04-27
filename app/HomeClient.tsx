@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import Image from "next/image"
 import TodoInput from "@/components/todo-input"
+import AITodoInput from "@/components/ai-todo-input"
 import TodoList from "@/components/todo-list"
 import TodoTable from "@/components/todo-table"
 import ThemeToggle from "@/components/theme-toggle"
@@ -102,7 +103,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
                 // Helper function to generate a content hash for comparison
                 const getContentHash = (todo: Todo) => {
-                    return `${todo.title.toLowerCase().trim()}_${todo.dueDate || ''}_${todo.urgency || 1}`
+                    return `${todo.title?.toLowerCase().trim() || ''}_${todo.dueDate || ''}_${todo.urgency || 1}`
                 }
 
                 // Helper function to update a remote todo
@@ -547,7 +548,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
                         initial={false}
                         className="w-full sticky top-4 z-10 mb-8"
                     >
-                        <TodoInput onAddTodo={addTodo} />
+                        <AITodoInput onAddTodo={addTodo} />
                     </motion.div>
                 </motion.div>
 

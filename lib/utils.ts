@@ -7,9 +7,39 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function formatDate(dateString: string): string {
-  // This is a simple function that could be enhanced with a date parsing library
-  // For now, we'll just return the string as is
-  return dateString
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString
+
+    const now = new Date()
+    const tomorrow = new Date(now)
+    tomorrow.setDate(tomorrow.getDate() + 1)
+    const isToday = date.toDateString() === now.toDateString()
+    const isTomorrow = date.toDateString() === tomorrow.toDateString()
+    
+    // Format time
+    const timeStr = date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    })
+    
+    // If it's today or tomorrow, show that instead of the date
+    if (isToday) return `Today at ${timeStr}`
+    if (isTomorrow) return `Tomorrow at ${timeStr}`
+    
+    // For other dates, show the full format
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  } catch (error) {
+    console.error('Error formatting date:', error)
+    return dateString
+  }
 }
 
 interface OldTodoFormat {
