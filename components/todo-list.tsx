@@ -1,8 +1,10 @@
 "use client"
 
-import { motion, AnimatePresence } from "framer-motion"
+import { motion, AnimatePresence, useScroll, useTransform, useInView, LayoutGroup } from "framer-motion"
 import type { Todo, Comment } from "@/lib/types"
 import TodoItem from "./todo-item"
+import { FaChevronDown } from "react-icons/fa"
+import { ReactNode, useRef, useEffect, useState } from "react"
 
 interface TodoListProps {
   todos: Todo[]
@@ -12,6 +14,165 @@ interface TodoListProps {
   onDeleteComment: (todoId: string, commentId: string) => void
   onReschedule: (id: string, newDate: string) => void
 }
+
+interface ScrollableColumnProps {
+  children: ReactNode;
+  label: string;
+  isEmpty?: boolean;
+}
+
+interface AnimatedTodoItemProps {
+  todo: Todo;
+  index: number;
+  onToggle: (id: string) => void;
+  onDelete: (id: string) => void;
+  onAddComment: (todoId: string, comment: Comment) => void;
+  onDeleteComment: (todoId: string, commentId: string) => void;
+  onReschedule: (id: string, newDate: string) => void;
+}
+
+// Custom component for animated todo items with scale effects as they enter/exit viewport
+const AnimatedTodoItem = ({ 
+  todo, 
+  index,
+  onToggle, 
+  onDelete, 
+  onAddComment,
+  onDeleteComment,
+  onReschedule 
+}: AnimatedTodoItemProps) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { 
+    margin: "-15% 0px",
+    amount: 0.6 // Trigger when at least 60% of the item is in view
+  });
+  
+  return (
+    <motion.div
+      ref={ref}
+      layoutId={`todo-${todo.id}`} // Use layoutId instead of layout for smoother transitions
+      initial={{ opacity: 0, scale: 0.85, y: 20 }}
+      animate={{ 
+        opacity: isInView ? 1 : 0.3,
+        scale: isInView ? 1 : 0.9,
+        y: isInView ? 0 : 10
+      }}
+      exit={{ 
+        opacity: 0, 
+        scale: 0.85, 
+        y: -20,
+        transition: {
+          duration: 0.25,
+          ease: [0.4, 0.0, 0.2, 1] // Custom ease curve for smoother exit
+        }
+      }}
+      transition={{ 
+        type: 'spring', 
+        stiffness: 200, // Less stiff for smoother motion
+        damping: 25, 
+        mass: 1,
+        delay: index * 0.02, // Shorter delay for better group animation
+        opacity: { duration: 0.2 },
+        scale: { duration: 0.3 },
+        layout: { duration: 0.3, ease: [0.34, 1.56, 0.64, 1] } // Custom bounce for layout changes
+      }}
+      style={{
+        transformOrigin: "center",
+        willChange: "transform, opacity",
+        position: "relative", // Important for smooth layout transitions
+        zIndex: todo.completed ? 0 : 1 // Keep incomplete items above completed ones for better layering
+      }}
+      className="transform-gpu" // Hardware acceleration
+    >
+      <TodoItem 
+        todo={todo} 
+        onToggle={onToggle} 
+        onDelete={onDelete} 
+        onAddComment={onAddComment}
+        onDeleteComment={onDeleteComment}
+        onReschedule={onReschedule}
+      />
+    </motion.div>
+  );
+}
+
+// Component for the scrollable column with fade effects
+const ScrollableColumn = ({ children, label, isEmpty = false }: ScrollableColumnProps) => {
+  const columnRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  
+  // Check if there's overflow content
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (columnRef.current) {
+        const hasVerticalOverflow = columnRef.current.scrollHeight > columnRef.current.clientHeight;
+        setHasOverflow(hasVerticalOverflow);
+      }
+    };
+    
+    // Initial check
+    checkOverflow();
+    
+    // Set up a resize observer to check when dimensions change
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    if (columnRef.current) {
+      resizeObserver.observe(columnRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [children]);
+  
+  // Scroll indicator handler
+  const { scrollYProgress } = useScroll({ container: columnRef });
+  const opacity = useTransform(scrollYProgress, [0.95, 1], [1, 0]);
+  
+  return (
+    <div className="flex-1 flex flex-col min-h-0 relative">
+      <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400 sticky top-0 z-10 bg-gray-100 dark:bg-[#09090B]">
+        {label}
+      </div>
+      
+      <div 
+        ref={columnRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden pr-1 scroll-smooth relative min-h-[300px] scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none', /* IE and Edge */
+        }}
+      >
+        {/* Hide webkit scrollbar */}
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        
+        {/* Top fade gradient */}
+        <div className="sticky top-0 left-0 right-0 h-6 bg-gradient-to-b from-gray-100 dark:from-[#09090B] to-transparent z-[5] pointer-events-none"></div>
+        
+        {/* Content with spacing */}
+        <div className="relative z-[1] flex flex-col gap-2">
+          {children}
+        </div>
+        
+        {/* Bottom fade gradient */}
+        <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-100 dark:from-[#09090B] to-transparent z-[5] pointer-events-none"></div>
+        
+        {/* Scroll indicator - only shows if there are todos AND there's overflow */}
+        {!isEmpty && hasOverflow && (
+          <motion.div 
+            style={{ opacity }}
+            className="absolute bottom-1 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 z-10 pointer-events-none"
+          >
+            <FaChevronDown className="h-4 w-4" />
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
 
 export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule }: TodoListProps) {
   if (todos.length === 0) {
@@ -68,75 +229,57 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
     return bucket.map(x => x.todo).sort(sortByDueDate);
   };
 
+  // JSX for rendering todos in a column with enhanced animations
+  const renderTodos = (todos: Todo[], columnId: string) => (
+    <LayoutGroup id={`column-${columnId}`}>
+      <AnimatePresence mode="popLayout" initial={false}>
+        {todos.map((todo, index) => (
+          <AnimatedTodoItem
+            key={todo.id}
+            todo={todo}
+            index={index}
+            onToggle={onToggle}
+            onDelete={onDelete}
+            onAddComment={onAddComment}
+            onDeleteComment={onDeleteComment}
+            onReschedule={onReschedule}
+          />
+        ))}
+      </AnimatePresence>
+    </LayoutGroup>
+  );
+
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col md:flex-row gap-4 h-[calc(100vh-280px)]">
       {/* Mobile: Single Column */}
-      <div className="flex flex-col gap-2 w-full md:hidden overflow-y-auto [&::-webkit-scrollbar]:hidden">
-        {/* Mobile header */}
-        <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-          All Tasks ({getColumnTodos(0, 1).length})
-        </div>
-        <AnimatePresence mode="popLayout">
-          {getColumnTodos(0, 1).map((todo) => (
-            <motion.div
-              key={todo.id}
-              layout
-              initial={{ opacity: 0, y: 20, scale: 0.9 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0, y: -20, scale: 0.8 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            >
-              <TodoItem 
-                todo={todo} 
-                onToggle={onToggle} 
-                onDelete={onDelete} 
-                onAddComment={onAddComment}
-                onDeleteComment={onDeleteComment}
-                onReschedule={onReschedule}
-              />
-            </motion.div>
-          ))}
-        </AnimatePresence>
+      <div className="flex flex-col gap-2 w-full md:hidden h-full">
+        <ScrollableColumn 
+          label={`All Tasks (${getColumnTodos(0, 1).length})`}
+          isEmpty={getColumnTodos(0, 1).length === 0}
+        >
+          {renderTodos(getColumnTodos(0, 1), "mobile")}
+        </ScrollableColumn>
       </div>
 
       {/* Tablet: Two Columns */}
-      <div className="hidden md:flex lg:hidden gap-4 w-full">
+      <div className="hidden md:flex lg:hidden gap-4 w-full h-full">
         {([0, 1] as const).map((columnIndex) => {
           const colTodos = getColumnTodos(columnIndex, 2);
           const label = columnIndex === 0 ? `Due Today & Overdue (${colTodos.length})` : `Upcoming (${colTodos.length})`;
           return (
-            <div key={columnIndex} className="flex-1 flex flex-col gap-2 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-              <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-                {label}
-              </div>
-              <AnimatePresence mode="popLayout">
-                {colTodos.map(todo => (
-                  <motion.div
-                    key={todo.id}
-                    layout
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -20, scale: 0.8 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  >
-                    <TodoItem 
-                      todo={todo} 
-                      onToggle={onToggle} 
-                      onDelete={onDelete} 
-                      onAddComment={onAddComment}
-                      onDeleteComment={onDeleteComment}
-                      onReschedule={onReschedule}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+            <ScrollableColumn 
+              key={columnIndex} 
+              label={label}
+              isEmpty={colTodos.length === 0}
+            >
+              {renderTodos(colTodos, `tablet-${columnIndex}`)}
+            </ScrollableColumn>
           )
         })}
       </div>
 
       {/* Desktop: Three Columns */}
-      <div className="hidden lg:flex gap-4 w-full">
+      <div className="hidden lg:flex gap-4 w-full h-full">
         {([0, 1, 2] as const).map((columnIndex) => {
           const colTodos = getColumnTodos(columnIndex, 3);
           const label = columnIndex === 0
@@ -145,32 +288,13 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
               ? `Next 7 Days (${colTodos.length})`
               : `Upcoming (${colTodos.length})`;
           return (
-            <div key={columnIndex} className="flex-1 flex flex-col gap-2 overflow-y-auto [&::-webkit-scrollbar]:hidden">
-              <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400">
-                {label}
-              </div>
-              <AnimatePresence mode="popLayout">
-                {colTodos.map(todo => (
-                  <motion.div
-                    key={todo.id}
-                    layout
-                    initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -20, scale: 0.8 }}
-                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-                  >
-                    <TodoItem 
-                      todo={todo} 
-                      onToggle={onToggle} 
-                      onDelete={onDelete} 
-                      onAddComment={onAddComment}
-                      onDeleteComment={onDeleteComment}
-                      onReschedule={onReschedule}
-                    />
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
+            <ScrollableColumn 
+              key={columnIndex} 
+              label={label}
+              isEmpty={colTodos.length === 0}
+            >
+              {renderTodos(colTodos, `desktop-${columnIndex}`)}
+            </ScrollableColumn>
           )
         })}
       </div>
