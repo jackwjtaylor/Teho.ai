@@ -314,6 +314,20 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   <div className="flex items-center relative">
                     <AnimatePresence mode="popLayout">
                       {isHovered && (
+                        <motion.div
+                          key="buttons-backdrop"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.2 }}
+                          className="absolute right-0 h-full w-32 bg-gradient-to-l from-white/90 via-white/80 to-transparent dark:from-[#131316]/95 dark:via-[#131316]/70 dark:to-transparent z-[1] top-0 -mt-3 rounded-r-[12px]"
+                          style={{ 
+                            width: '40%',
+                            right: '-16px'
+                          }}
+                        />
+                      )}
+                      {isHovered && (
                         <motion.button
                           key="reschedule-button"
                           initial={{ opacity: 0, scale: 0.8 }}
@@ -324,7 +338,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                             e.stopPropagation()
                             setShowRescheduleDialog(true)
                           }}
-                          className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors"
+                          className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors z-[2]"
                         >
                           <RotateCcw className="w-4 h-4" />
                         </motion.button>
@@ -340,7 +354,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                             e.stopPropagation()
                             setShowDeleteConfirm(true)
                           }}
-                          className="absolute right-6 text-gray-400 hover:text-gray-600 dark:text-white/50 dark:hover:text-white/80 transition-colors"
+                          className="absolute right-6 text-gray-400 hover:text-gray-600 dark:text-white/50 dark:hover:text-white/80 transition-colors z-[2]"
                         >
                           <Trash2 className="w-4 h-4" />
                         </motion.button>
