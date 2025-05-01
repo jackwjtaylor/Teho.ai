@@ -602,6 +602,26 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
         // Log the update
         console.log(`Todo "${todo.title}" moved to ${destination.droppableId} at index ${destination.index}`);
+
+        // Update the database after animations finish
+        if (session?.user) {
+            setTimeout(async () => {
+                try {
+                    const res = await fetch('/api/todos', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: draggableId, dueDate: updatedTodo.dueDate }),
+                    });
+                    if (!res.ok) throw new Error('Failed to update todo via drag-and-drop');
+                    const serverTodo = await res.json();
+                    // Sync state with server response
+                    setTodos(prev => prev.map(t => t.id === draggableId ? serverTodo : t));
+                    console.log('✅ Todo dueDate updated on server via drag:', serverTodo);
+                } catch (error) {
+                    console.error('❌ Error updating todo via drag:', error);
+                }
+            }, 350);
+        }
     };
 
     return (
