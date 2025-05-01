@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Image from "next/image"
 import TodoInput from "@/components/todo-input"
 import AITodoInput from "@/components/ai-todo-input"
@@ -19,6 +19,7 @@ import NewWorkspaceDialog from "@/components/new-workspace-dialog"
 import CommandPalette from "@/components/command-palette"
 import { toast } from 'sonner'
 import { addTimezoneHeader } from "@/lib/timezone-utils"
+import { DropResult } from '@hello-pangea/dnd'
 
 interface HomeClientProps {
     initialTodos: Todo[]
@@ -547,6 +548,62 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         }
     }
 
+    const handleDragEnd = (result: DropResult) => {
+        const { destination, source, draggableId } = result;
+        
+        // If there's no destination or the item was dropped in its original position
+        if (!destination || 
+            (destination.droppableId === source.droppableId && 
+             destination.index === source.index)) {
+            return;
+        }
+
+        // Find the todo that was dragged
+        const todo = todos.find(t => t.id === draggableId);
+        if (!todo) return;
+
+        // Calculate new due date based on destination column
+        let newDueDate = new Date();
+        if (destination.droppableId.startsWith('desktop')) {
+            const columnIndex = parseInt(destination.droppableId.split('-')[2]);
+            if (columnIndex === 0) {
+                // Today's column - keep current date
+                newDueDate = new Date();
+            } else if (columnIndex === 1) {
+                // Next 7 days column - set to tomorrow
+                newDueDate.setDate(newDueDate.getDate() + 1);
+            } else {
+                // Upcoming column - set to next week
+                newDueDate.setDate(newDueDate.getDate() + 8);
+            }
+        } else if (destination.droppableId.startsWith('tablet')) {
+            const columnIndex = parseInt(destination.droppableId.split('-')[2]);
+            if (columnIndex === 0) {
+                // Today's column
+                newDueDate = new Date();
+            } else {
+                // Upcoming column
+                newDueDate.setDate(newDueDate.getDate() + 1);
+            }
+        }
+
+        // Update the todo's due date
+        const updatedTodo = {
+            ...todo,
+            dueDate: newDueDate.toISOString()
+        };
+
+        // Create new array with updated todo
+        const newTodos = todos.filter(t => t.id !== draggableId);
+        newTodos.splice(destination.index, 0, updatedTodo);
+        
+        // Update state
+        setTodos(newTodos);
+
+        // Log the update
+        console.log(`Todo "${todo.title}" moved to ${destination.droppableId} at index ${destination.index}`);
+    };
+
     return (
         <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
             <div className="flex flex-row items-center justify-left">
@@ -596,25 +653,15 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
                             exit={{ opacity: 0, y: -20 }}
                             transition={{ duration: 0.3 }}
                         >
-                            {isTableView ? (
-                                <TodoTable
-                                    todos={filteredTodos}
-                                    onToggle={toggleTodo}
-                                    onDelete={deleteTodo}
-                                    onAddComment={addComment}
-                                    onDeleteComment={deleteComment}
-                                    onReschedule={rescheduleTodo}
-                                />
-                            ) : (
-                                <TodoList
-                                    todos={filteredTodos}
-                                    onToggle={toggleTodo}
-                                    onDelete={deleteTodo}
-                                    onAddComment={addComment}
-                                    onDeleteComment={deleteComment}
-                                    onReschedule={rescheduleTodo}
-                                />
-                            )}
+                            <TodoList
+                                todos={filteredTodos}
+                                onToggle={toggleTodo}
+                                onDelete={deleteTodo}
+                                onAddComment={addComment}
+                                onDeleteComment={deleteComment}
+                                onReschedule={rescheduleTodo}
+                                onDragEnd={handleDragEnd}
+                            />
                         </motion.div>
                     )}
                 </AnimatePresence>
