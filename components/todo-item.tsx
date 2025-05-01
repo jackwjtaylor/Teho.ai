@@ -1,8 +1,7 @@
 "use client"
 
 import { useState, useRef, type KeyboardEvent, useEffect } from "react"
-import { motion, AnimatePresence } from "framer-motion"
-import { Check, Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight, RotateCcw } from "lucide-react"
+import { Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight, RotateCcw, Check } from "lucide-react"
 import type { Todo, Comment } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
@@ -242,7 +241,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <motion.div layout className="flex flex-col relative">
+      <div className="flex flex-col relative">
         <div className={`${
           todo.dueDate ? getStatusStyle(todo.dueDate) : ""
         }`}>
@@ -277,19 +276,9 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   todo.completed ? "bg-[#7c5aff]/20 border-[#7c5aff]/30" : "border-gray-300 dark:border-white/30"
                 } flex items-center justify-center transition-colors`}
               >
-                <AnimatePresence>
-                  {todo.completed && (
-                    <motion.div
-                      key="check"
-                      initial={{ scale: 0, opacity: 0 }}
-                      animate={{ scale: 1, opacity: 1 }}
-                      exit={{ scale: 0, opacity: 0 }}
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                    >
-                      <Check className="w-3 h-3 text-[#7c5aff]" />
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {todo.completed && (
+                  <Check className="w-3 h-3 text-[#7c5aff]" />
+                )}
               </button>
 
               <div className="flex-1 min-w-0">
@@ -312,54 +301,37 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   </div>
 
                   <div className="flex items-center relative">
-                    <AnimatePresence mode="popLayout">
-                      {isHovered && (
-                        <motion.div
-                          key="buttons-backdrop"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.2 }}
-                          className="absolute right-0 h-full w-32 bg-gradient-to-l from-white/90 via-white/80 to-transparent dark:from-[#131316]/95 dark:via-[#131316]/70 dark:to-transparent z-[1] top-0 -mt-3 rounded-r-[12px]"
-                          style={{ 
-                            width: '40%',
-                            right: '-16px'
-                          }}
-                        />
-                      )}
-                      {isHovered && (
-                        <motion.button
-                          key="reschedule-button"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ duration: 0.15 }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowRescheduleDialog(true)
-                          }}
-                          className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors z-[2]"
-                        >
-                          <RotateCcw className="w-4 h-4" />
-                        </motion.button>
-                      )}
-                      {isHovered && (
-                        <motion.button
-                          key="delete-button"
-                          initial={{ opacity: 0, scale: 0.8 }}
-                          animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ duration: 0.15 }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setShowDeleteConfirm(true)
-                          }}
-                          className="absolute right-6 text-gray-400 hover:text-gray-600 dark:text-white/50 dark:hover:text-white/80 transition-colors z-[2]"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </motion.button>
-                      )}
-                    </AnimatePresence>
+                    {isHovered && (
+                      <div
+                        className="absolute right-0 h-full w-32 bg-gradient-to-l from-white/90 via-white/80 to-transparent dark:from-[#131316]/95 dark:via-[#131316]/70 dark:to-transparent z-[1] top-0 -mt-3 rounded-r-[12px] transition-opacity duration-200"
+                        style={{ 
+                          width: '40%',
+                          right: '-16px'
+                        }}
+                      />
+                    )}
+                    {isHovered && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowRescheduleDialog(true)
+                        }}
+                        className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors z-[2]"
+                      >
+                        <RotateCcw className="w-4 h-4" />
+                      </button>
+                    )}
+                    {isHovered && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowDeleteConfirm(true)
+                        }}
+                        className="absolute right-6 text-gray-400 hover:text-gray-600 dark:text-white/50 dark:hover:text-white/80 transition-colors z-[2]"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
 
                     {isExpanded ? (
                       <ChevronUp className="w-4 h-4 text-gray-400 dark:text-white/50" />
@@ -392,155 +364,126 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
           </div>
         </div>
 
-        <AnimatePresence>
-          {isExpanded && (
-            <motion.div
-              key="expanded-content"
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ 
-                type: "spring",
-                stiffness: 500,
-                damping: 40,
-                opacity: { duration: 0.2 }
-              }}
-              className="border-t border-gray-200 dark:border-white/10 overflow-hidden relative rounded-b-[12px]"
-            >
-              {isReminderCommand && !isProcessingReminder && (
-                <ShineBorder 
-                  borderWidth={1}
-                  duration={2}
-                  shineColor={["#7c5aff", "#7c5aff"]}
-                  className="rounded-b-[12px]"
-                  style={{
-                    '--border-radius': '12px',
-                  } as React.CSSProperties}
-                />
-              )}
-              {isProcessingReminder && (
-                <div className="absolute inset-0 bg-[#7c5aff]/5 dark:bg-[#7c5aff]/10 rounded-b-[12px] flex items-center justify-center">
-                  <div className="w-5 h-5 border-2 border-[#7c5aff] border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              )}
-              <motion.div 
-                initial={{ y: -10, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -10, opacity: 0 }}
-                transition={{ duration: 0.2, delay: 0.1 }}
-                className="p-4"
-              >
-                {/* Comments list */}
-                {todo.comments.length > 0 && (
-                  <motion.div className="mb-4 space-y-2" layout>
-                    {todo.comments.map((comment) => (
-                      <div
-                        key={comment.id}
-                        onMouseEnter={() => setHoveredCommentId(comment.id)}
-                        onMouseLeave={() => setHoveredCommentId(null)}
-                        className="group"
-                      >
-                        <div className="flex items-start gap-2">
-                          <div className="flex-shrink-0 mt-0.5">
-                            <User className="w-4 h-4 text-gray-400 dark:text-white/40" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1 min-w-0">
-                                <ReminderComment 
-                                  text={comment.text}
-                                  createdAt={comment.createdAt}
-                                />
-                                <div className="flex items-center gap-2 mt-1">
-                                  <div className="text-xs text-gray-400 dark:text-white/40">
-                                    {comment.user?.name || 'Local User'}
-                                  </div>
-                                  <div className="text-xs text-gray-400 dark:text-white/40">•</div>
-                                  <div className="text-xs text-gray-400 dark:text-white/40">
-                                    {formatCommentDate(comment.createdAt)}
-                                  </div>
-                                  {comment.text.startsWith('!!RMD!!') && (
-                                    <>
-                                      <div className="text-xs text-gray-400 dark:text-white/40">•</div>
-                                      <div className="text-xs text-[#7c5aff] dark:text-[#7c5aff] font-medium">
-                                        Reminder Set
-                                      </div>
-                                    </>
-                                  )}
+        {isExpanded && (
+          <div
+            className="border-t border-gray-200 dark:border-white/10 overflow-hidden relative rounded-b-[12px] transition-all duration-200"
+          >
+            {isReminderCommand && !isProcessingReminder && (
+              <ShineBorder 
+                borderWidth={1}
+                duration={2}
+                shineColor={["#7c5aff", "#7c5aff"]}
+                className="rounded-b-[12px]"
+                style={{
+                  '--border-radius': '12px',
+                } as React.CSSProperties}
+              />
+            )}
+            {isProcessingReminder && (
+              <div className="absolute inset-0 bg-[#7c5aff]/5 dark:bg-[#7c5aff]/10 rounded-b-[12px] flex items-center justify-center">
+                <div className="w-5 h-5 border-2 border-[#7c5aff] border-t-transparent rounded-full animate-spin"></div>
+              </div>
+            )}
+            <div className="p-4">
+              {/* Comments list */}
+              {todo.comments.length > 0 && (
+                <div className="mb-4 space-y-2">
+                  {todo.comments.map((comment) => (
+                    <div
+                      key={comment.id}
+                      onMouseEnter={() => setHoveredCommentId(comment.id)}
+                      onMouseLeave={() => setHoveredCommentId(null)}
+                      className="group"
+                    >
+                      <div className="flex items-start gap-2">
+                        <div className="flex-shrink-0 mt-0.5">
+                          <User className="w-4 h-4 text-gray-400 dark:text-white/40" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <ReminderComment 
+                                text={comment.text}
+                                createdAt={comment.createdAt}
+                              />
+                              <div className="flex items-center gap-2 mt-1">
+                                <div className="text-xs text-gray-400 dark:text-white/40">
+                                  {comment.user?.name || 'Local User'}
                                 </div>
+                                <div className="text-xs text-gray-400 dark:text-white/40">•</div>
+                                <div className="text-xs text-gray-400 dark:text-white/40">
+                                  {formatCommentDate(comment.createdAt)}
+                                </div>
+                                {comment.text.startsWith('!!RMD!!') && (
+                                  <>
+                                    <div className="text-xs text-gray-400 dark:text-white/40">•</div>
+                                    <div className="text-xs text-[#7c5aff] dark:text-[#7c5aff] font-medium">
+                                      Reminder Set
+                                    </div>
+                                  </>
+                                )}
                               </div>
-                              <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
-                                <AnimatePresence>
-                                  {hoveredCommentId === comment.id && (
-                                    <motion.button
-                                      initial={{ opacity: 0 }}
-                                      animate={{ opacity: 1 }}
-                                      exit={{ opacity: 0 }}
-                                      transition={{ duration: 0.15 }}
-                                      onClick={() => onDeleteComment(todo.id, comment.id)}
-                                      className="text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/60 transition-colors"
-                                    >
-                                      <Trash2 className="w-3 h-3" />
-                                    </motion.button>
-                                  )}
-                                </AnimatePresence>
-                              </div>
+                            </div>
+                            <div className="flex-shrink-0 w-6 h-6 flex items-center justify-center">
+                              {hoveredCommentId === comment.id && (
+                                <button
+                                  onClick={() => onDeleteComment(todo.id, comment.id)}
+                                  className="text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/60 transition-colors"
+                                >
+                                  <Trash2 className="w-3 h-3" />
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
                       </div>
-                    ))}
-                  </motion.div>
-                )}
+                    </div>
+                  ))}
+                </div>
+              )}
 
-                {/* Add comment input */}
-                <motion.div 
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 }}
-                  className="flex items-start gap-2"
-                >
-                  <div className="flex-shrink-0 mt-0.5">
-                    <User className="w-4 h-4 text-gray-400 dark:text-white/40" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <textarea
-                      ref={commentInputRef}
-                      value={commentText}
-                      onChange={handleTextareaInput}
-                      onKeyDown={handleAddComment}
-                      placeholder={session?.user ? "Add a comment... (Use !remindme or !rmd for reminders)" : "Add a comment..."}
-                      rows={1}
-                      className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-[15px] transition-colors duration-200 resize-none overflow-hidden min-h-[24px] py-0"
-                    />
-                  </div>
-                  {commentText.trim() && (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        if (commentText.trim()) {
-                          const newComment: Comment = {
-                            id: uuidv4(),
-                            text: commentText.trim(),
-                            todoId: todo.id,
-                            userId: todo.userId,
-                            createdAt: new Date(),
-                          }
-                          onAddComment(todo.id, newComment)
-                          setCommentText("")
+              {/* Add comment input */}
+              <div className="flex items-start gap-2">
+                <div className="flex-shrink-0 mt-0.5">
+                  <User className="w-4 h-4 text-gray-400 dark:text-white/40" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <textarea
+                    ref={commentInputRef}
+                    value={commentText}
+                    onChange={handleTextareaInput}
+                    onKeyDown={handleAddComment}
+                    placeholder={session?.user ? "Add a comment... (Use !remindme or !rmd for reminders)" : "Add a comment..."}
+                    rows={1}
+                    className="w-full bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-white/40 text-[15px] transition-colors duration-200 resize-none overflow-hidden min-h-[24px] py-0"
+                  />
+                </div>
+                {commentText.trim() && (
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (commentText.trim()) {
+                        const newComment: Comment = {
+                          id: uuidv4(),
+                          text: commentText.trim(),
+                          todoId: todo.id,
+                          userId: todo.userId,
+                          createdAt: new Date(),
                         }
-                      }}
-                      className="md:hidden flex-shrink-0 mt-0.5"
-                    >
-                      <ArrowRight className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/60 transition-colors" />
-                    </button>
-                  )}
-                </motion.div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+                        onAddComment(todo.id, newComment)
+                        setCommentText("")
+                      }
+                    }}
+                    className="md:hidden flex-shrink-0 mt-0.5"
+                  >
+                    <ArrowRight className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:text-white/40 dark:hover:text-white/60 transition-colors" />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
