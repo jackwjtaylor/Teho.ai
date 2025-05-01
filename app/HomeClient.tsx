@@ -107,37 +107,26 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
     // Add keyboard shortcut handler for workspace switching
     useEffect(() => {
-        // console.log('🎧 Setting up keyboard listener')
         const handleKeyDown = (e: KeyboardEvent) => {
-            // console.log('🎹 Key pressed:', e.key, {
-            //     altKey: e.altKey,
-            //     ctrlKey: e.ctrlKey,
-            //     metaKey: e.metaKey,
-            //     shiftKey: e.shiftKey
-            // })
-            // Check if Ctrl + Cmd keys are pressed and a number key is pressed (1-9)
             if (e.ctrlKey && e.metaKey && !e.altKey && !e.shiftKey) {
                 const num = parseInt(e.key)
                 if (!isNaN(num) && num >= 1 && num <= 9) {
                     e.preventDefault()
-                    // Get the workspace at index num-1 (1-based to 0-based)
                     const targetWorkspace = workspaces[num - 1]
-                    if (targetWorkspace) {
+                    // Only switch if target workspace exists and is different from current
+                    if (targetWorkspace && targetWorkspace.id !== currentWorkspace) {
                         setCurrentWorkspace(targetWorkspace.id)
-                        // Show a toast notification
                         toast.success(`Switched to workspace: ${targetWorkspace.name}`)
                     }
                 }
             }
         }
 
-        // Add event listener to document instead of window
         document.addEventListener('keydown', handleKeyDown)
         return () => {
-            console.log('🎧 Cleaning up keyboard listener')
             document.removeEventListener('keydown', handleKeyDown)
         }
-    }, [workspaces, setCurrentWorkspace])
+    }, [workspaces, setCurrentWorkspace, currentWorkspace])
 
     // Sync with server if logged in
     useEffect(() => {

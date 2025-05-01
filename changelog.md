@@ -31,6 +31,7 @@
   - Enhanced readability of settings options
 - Enhanced database schema for reminders with additional fields for better organization
 - Improved error handling and validation in reminder creation process
+- Optimized workspace switching to prevent unnecessary state updates when switching to current workspace
 
 ### Technical
 - Integrated GPT-4.1-nano model for natural language processing
