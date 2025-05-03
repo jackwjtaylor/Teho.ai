@@ -286,8 +286,12 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   }, [session?.user]);
 
   const addTodo = async (todo: Todo) => {
+    // Create a temporary client-side ID for optimistic updates
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
     const newTodo = {
       ...todo,
+      id: tempId, // Override with our guaranteed unique temp ID
       comments: [],
       userId: session?.user?.id || 'local',
       workspaceId: currentWorkspace,
@@ -309,11 +313,15 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           }),
         })
         const serverTodo = await res.json()
-        setTodos(prev => prev.map(t => t.id === newTodo.id ? { ...serverTodo, comments: [] } : t))
+        
+        // Replace the temporary todo with the server response
+        setTodos(prev => prev.map(t => 
+          t.id === tempId ? { ...serverTodo, comments: [] } : t
+        ))
       } catch (error) {
         console.error('Failed to add todo:', error)
         // Revert on error
-        setTodos(prev => prev.filter(t => t.id !== newTodo.id))
+        setTodos(prev => prev.filter(t => t.id !== tempId))
       }
     }
   }
@@ -591,7 +599,11 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     if (!todo) return;
 
     // Calculate new due date based on destination column
-    let newDueDate = new Date();
+    // Start with today's date at midnight to ensure consistent dates across timezones
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let newDueDate = today;
+    
     if (destination.droppableId.startsWith('desktop')) {
       const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
       if (Number.isNaN(columnIndex)) {
@@ -600,14 +612,18 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       }
       
       if (columnIndex === 0) {
-        // Today's column - keep current date
-        newDueDate = new Date();
+        // Today's column - set to today
+        newDueDate = new Date(today);
       } else if (columnIndex === 1) {
-        // Next 7 days column - set to tomorrow
-        newDueDate.setDate(newDueDate.getDate() + 1);
+        // Next 7 days column - set to the middle of the range (today + 3 days)
+        const nextWeek = new Date(today);
+        nextWeek.setDate(today.getDate() + 3);
+        newDueDate = nextWeek;
       } else {
-        // Upcoming column - set to next week
-        newDueDate.setDate(newDueDate.getDate() + 8);
+        // Upcoming column - set to beyond next week
+        const upcoming = new Date(today);
+        upcoming.setDate(today.getDate() + 14);
+        newDueDate = upcoming;
       }
     } else if (destination.droppableId.startsWith('tablet')) {
       const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
@@ -618,17 +634,22 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       
       if (columnIndex === 0) {
         // Today's column
-        newDueDate = new Date();
+        newDueDate = new Date(today);
       } else {
-        // Upcoming column
-        newDueDate.setDate(newDueDate.getDate() + 1);
+        // Upcoming column - set to the middle of upcoming range (today + 7 days)
+        const upcoming = new Date(today);
+        upcoming.setDate(today.getDate() + 7);
+        newDueDate = upcoming;
       }
     }
 
-    // Update the todo's due date
+    // Format date as YYYY-MM-DD to avoid timezone issues
+    const formattedDate = `${newDueDate.getFullYear()}-${String(newDueDate.getMonth() + 1).padStart(2, '0')}-${String(newDueDate.getDate()).padStart(2, '0')}`;
+    
+    // Update the todo's due date (midnight in local timezone)
     const updatedTodo = {
       ...todo,
-      dueDate: newDueDate.toISOString()
+      dueDate: `${formattedDate}T00:00:00.000Z`
     };
 
     // Create new array with updated todo

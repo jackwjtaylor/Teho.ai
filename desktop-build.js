@@ -182,7 +182,8 @@ console.log('Building desktop app with Next.js...');
 const originalDir = process.cwd();
 try {
   process.chdir(tempDir);
-  execSync('bun run next build', { stdio: 'inherit' });
+  // Use npx to ensure portability across different environments
+  execSync('npx --no-install next build', { stdio: 'inherit' });
   console.log('Next.js build completed successfully!');
   
   // Copy the build output to the project root's out directory
