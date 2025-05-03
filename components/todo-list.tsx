@@ -15,6 +15,7 @@ interface TodoListProps {
   onDeleteComment: (todoId: string, commentId: string) => void
   onReschedule: (id: string, newDate: string) => void
   onDragEnd: OnDragEndResponder
+  disableDrag?: boolean
 }
 
 interface ScrollableColumnProps {
@@ -194,7 +195,93 @@ const ScrollableColumn = ({ children, label, isEmpty = false, droppableId }: Scr
   );
 };
 
-export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule, onDragEnd }: TodoListProps) {
+// Non-draggable version of ScrollableColumn
+const StaticColumn = ({ 
+  children, 
+  label, 
+  isEmpty = false 
+}: {
+  children: ReactNode;
+  label: string;
+  isEmpty?: boolean;
+}) => {
+  const columnRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  
+  // Check if there's overflow content
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (columnRef.current) {
+        const hasVerticalOverflow = columnRef.current.scrollHeight > columnRef.current.clientHeight;
+        setHasOverflow(hasVerticalOverflow);
+      }
+    };
+    
+    // Initial check
+    checkOverflow();
+    
+    // Set up a resize observer to check when dimensions change
+    const resizeObserver = new ResizeObserver(checkOverflow);
+    if (columnRef.current) {
+      resizeObserver.observe(columnRef.current);
+    }
+    
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, [children]);
+  
+  // Scroll indicator handler
+  const { scrollYProgress } = useScroll({ container: columnRef });
+  const opacity = useTransform(scrollYProgress, [0.95, 1], [1, 0]);
+  
+  return (
+    <div className="flex-1 flex flex-col min-h-0 relative">
+      <div className="px-2 py-1 text-sm font-medium text-gray-500 dark:text-gray-400 sticky top-0 z-10 bg-gray-100 dark:bg-[#09090B]">
+        {label}
+      </div>
+      
+      <div 
+        ref={columnRef}
+        className="flex-1 overflow-y-auto overflow-x-hidden pr-1 scroll-smooth relative min-h-[300px] scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none',
+          msOverflowStyle: 'none',
+        }}
+      >
+        {/* Hide webkit scrollbar */}
+        <style jsx>{`
+          div::-webkit-scrollbar {
+            display: none;
+          }
+        `}</style>
+        
+        {/* Top fade gradient */}
+        <div className="sticky top-0 left-0 right-0 h-6 bg-gradient-to-b from-gray-100 dark:from-[#09090B] to-transparent z-[5] pointer-events-none"></div>
+        
+        {/* Content with spacing */}
+        <div className="relative z-[1] flex flex-col gap-2">
+          {children}
+        </div>
+        
+        {/* Bottom fade gradient */}
+        <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-100 dark:from-[#09090B] to-transparent z-[5] pointer-events-none"></div>
+        
+        {/* Scroll indicator - only shows if there are todos AND there's overflow */}
+        {!isEmpty && hasOverflow && (
+          <motion.div 
+            style={{ opacity }}
+            className="absolute bottom-1 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 z-10 pointer-events-none"
+          >
+            <FaChevronDown className="h-4 w-4" />
+          </motion.div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule, onDragEnd, disableDrag = false }: TodoListProps) {
   if (todos.length === 0) {
     return null;
   }
@@ -257,36 +344,68 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
     <LayoutGroup id={`column-${columnId}`}>
       <AnimatePresence mode="popLayout" initial={false}>
         {todos.map((todo, index) => (
-          <Draggable key={todo.id} draggableId={todo.id} index={index}>
-            {(provided, snapshot) => (
-              <div
-                ref={provided.innerRef}
-                {...provided.draggableProps}
-                {...provided.dragHandleProps}
-                style={{
-                  ...provided.draggableProps.style,
-                  opacity: snapshot.isDragging ? 0.8 : 1,
-                }}
-              >
-                <AnimatedTodoItem
-                  todo={todo}
-                  index={index}
-                  onToggle={onToggle}
-                  onDelete={onDelete}
-                  onAddComment={onAddComment}
-                  onDeleteComment={onDeleteComment}
-                  onReschedule={onReschedule}
-                  isDraggingItem={snapshot.isDragging}
-                  isDragActive={dragActive}
-                />
-              </div>
-            )}
-          </Draggable>
+          disableDrag ? (
+            // Non-draggable version for mobile
+            <div key={todo.id}>
+              <AnimatedTodoItem
+                todo={todo}
+                index={index}
+                onToggle={onToggle}
+                onDelete={onDelete}
+                onAddComment={onAddComment}
+                onDeleteComment={onDeleteComment}
+                onReschedule={onReschedule}
+                isDragActive={false}
+              />
+            </div>
+          ) : (
+            // Draggable version for larger screens
+            <Draggable key={todo.id} draggableId={todo.id} index={index}>
+              {(provided, snapshot) => (
+                <div
+                  ref={provided.innerRef}
+                  {...provided.draggableProps}
+                  {...provided.dragHandleProps}
+                  style={{
+                    ...provided.draggableProps.style,
+                    opacity: snapshot.isDragging ? 0.8 : 1,
+                  }}
+                >
+                  <AnimatedTodoItem
+                    todo={todo}
+                    index={index}
+                    onToggle={onToggle}
+                    onDelete={onDelete}
+                    onAddComment={onAddComment}
+                    onDeleteComment={onDeleteComment}
+                    onReschedule={onReschedule}
+                    isDraggingItem={snapshot.isDragging}
+                    isDragActive={dragActive}
+                  />
+                </div>
+              )}
+            </Draggable>
+          )
         ))}
       </AnimatePresence>
     </LayoutGroup>
   );
 
+  // If drag is disabled (mobile), render the static version
+  if (disableDrag) {
+    return (
+      <div className="flex flex-col gap-4 h-[calc(100vh-280px)]">
+        <StaticColumn 
+          label={`All Tasks (${todos.length})`}
+          isEmpty={todos.length === 0}
+        >
+          {renderTodos(todos.sort(sortByDueDate), "mobile-static")}
+        </StaticColumn>
+      </div>
+    );
+  }
+
+  // Return the original drag and drop enabled version for larger screens
   return (
     <DragDropContext
       onDragStart={() => setDragActive(true)}
