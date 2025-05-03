@@ -16,7 +16,6 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useSession } from "@/lib/auth-client"
 import WorkspaceSwitcher from "@/components/workspace-switcher"
 import NewWorkspaceDialog from "@/components/new-workspace-dialog"
-import CommandPalette from "@/components/command-palette"
 import { toast } from 'sonner'
 import { addTimezoneHeader } from "@/lib/timezone-utils"
 import { DropResult } from '@hello-pangea/dnd'
@@ -82,7 +81,6 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [currentWorkspace, setCurrentWorkspace] = usePersistentState<string>('currentWorkspace', 'personal')
   const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
-  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const { data: session } = useSession()
   const isMobile = useIsMobile();
 
@@ -155,98 +153,121 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     }
   }, [workspaces, setCurrentWorkspace, currentWorkspace])
 
-  // Sync with server if logged in
-  useEffect(() => {
-    if (!session?.user) return
-
-    const syncWithServer = async () => {
-      try {
-        const res = await fetch('/api/todos')
-        const remoteTodos = await res.json() as Todo[]
-
-        // Helper function to generate a content hash for comparison
-        const getContentHash = (todo: Todo) => {
-          return `${todo.title?.toLowerCase().trim() || ''}_${todo.dueDate || ''}_${todo.urgency || 1}`
-        }
-
-        // Helper function to update a remote todo
-        const updateRemoteTodo = async (todoId: string, updates: { completed: boolean }) => {
-          try {
-            await fetch('/api/todos', {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ id: todoId, ...updates }),
-            })
-          } catch (error) {
-            console.error('Failed to update remote todo:', error)
-          }
-        }
-
-        // Create maps of remote todos
-        const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
-        const remoteContentMap = new Map(remoteTodos.map((todo: Todo) => [
-          getContentHash(todo),
-          todo
-        ]))
-
-        // Find local-only todos that don't exist on server by content
-        const localOnlyTodos = todos.filter(todo => {
-          const contentHash = getContentHash(todo)
-          const matchingRemoteTodo = remoteContentMap.get(contentHash)
-
-          // If no content match found, or if content matches but completion status differs
-          if (!matchingRemoteTodo) {
-            return true // Truly new todo
-          }
-
-          // If content matches but completion status is different, update the remote todo
-          if (matchingRemoteTodo.completed !== todo.completed) {
-            updateRemoteTodo(matchingRemoteTodo.id, { completed: todo.completed })
-            return false
-          }
-
-          return false // Skip if content matches and no updates needed
-        })
-
-        // Sync local-only todos to server
-        const syncPromises = localOnlyTodos.map(todo =>
-          fetch('/api/todos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              title: todo.title,
-              dueDate: todo.dueDate,
-              urgency: todo.urgency,
-              completed: todo.completed
-            }),
-          }).then(res => res.json())
-        )
-
-        const syncedTodos = await Promise.all(syncPromises)
-
-        // Fetch the latest state from server after all syncs and updates
-        const finalRes = await fetch('/api/todos')
-        const finalTodos = (await finalRes.json()) as Todo[]
-
-        // Dedupe todos by content hash before setting state
-        const uniqueTodos = Array.from(
-          new Map(
-            finalTodos.map(todo => [
-              getContentHash(todo),
-              todo
-            ])
-          ).values()
-        )
-
-        setTodos(uniqueTodos)
-
-      } catch (error) {
-        console.error('Failed to sync with server:', error)
+  // Define the sync function outside the effects so it can be reused
+  const syncWithServer = async () => {
+    if (!session?.user) return;
+    
+    try {
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('📡 Syncing todos with server...');
       }
-    }
+      
+      const res = await fetch('/api/todos')
+      const remoteTodos = await res.json() as Todo[]
 
-    syncWithServer()
-  }, [session?.user]) // Only re-run when user session changes
+      // Helper function to generate a content hash for comparison
+      const getContentHash = (todo: Todo) => {
+        return `${todo.title?.toLowerCase().trim() || ''}_${todo.dueDate || ''}_${todo.urgency || 1}`
+      }
+
+      // Helper function to update a remote todo
+      const updateRemoteTodo = async (todoId: string, updates: { completed: boolean }) => {
+        try {
+          await fetch('/api/todos', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id: todoId, ...updates }),
+          })
+        } catch (error) {
+          console.error('Failed to update remote todo:', error)
+        }
+      }
+
+      // Create maps of remote todos
+      const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
+      const remoteContentMap = new Map(remoteTodos.map((todo: Todo) => [
+        getContentHash(todo),
+        todo
+      ]))
+
+      // Find local-only todos that don't exist on server by content
+      const localOnlyTodos = todos.filter(todo => {
+        const contentHash = getContentHash(todo)
+        const matchingRemoteTodo = remoteContentMap.get(contentHash)
+
+        // If no content match found, or if content matches but completion status differs
+        if (!matchingRemoteTodo) {
+          return true // Truly new todo
+        }
+
+        // If content matches but completion status is different, update the remote todo
+        if (matchingRemoteTodo.completed !== todo.completed) {
+          updateRemoteTodo(matchingRemoteTodo.id, { completed: todo.completed })
+          return false
+        }
+
+        return false // Skip if content matches and no updates needed
+      })
+
+      // Sync local-only todos to server
+      const syncPromises = localOnlyTodos.map(todo =>
+        fetch('/api/todos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: todo.title,
+            dueDate: todo.dueDate,
+            urgency: todo.urgency,
+            completed: todo.completed
+          }),
+        }).then(res => res.json())
+      )
+
+      const syncedTodos = await Promise.all(syncPromises)
+
+      // Fetch the latest state from server after all syncs and updates
+      const finalRes = await fetch('/api/todos')
+      const finalTodos = (await finalRes.json()) as Todo[]
+
+      // Dedupe todos by content hash before setting state
+      const uniqueTodos = Array.from(
+        new Map(
+          finalTodos.map(todo => [
+            getContentHash(todo),
+            todo
+          ])
+        ).values()
+      )
+
+      setTodos(uniqueTodos)
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('✅ Sync completed successfully');
+      }
+
+    } catch (error) {
+      console.error('Failed to sync with server:', error)
+    }
+  }
+
+  // Initial sync with server when logged in
+  useEffect(() => {
+    if (!session?.user) return;
+    syncWithServer();
+  }, [session?.user]); // Only re-run when user session changes
+  
+  // Periodic sync with server every minute when logged in
+  useEffect(() => {
+    if (!session?.user) return;
+    
+    // Set up periodic sync
+    const syncInterval = setInterval(() => {
+      syncWithServer();
+    }, 60000); // Sync every minute
+    
+    // Clean up interval on unmount
+    return () => clearInterval(syncInterval);
+  }, [session?.user, todos]); // Re-establish interval when todos change
 
   // Load workspaces when session changes
   useEffect(() => {
@@ -286,8 +307,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   }, [session?.user]);
 
   const addTodo = async (todo: Todo) => {
-    // Create a temporary client-side ID for optimistic updates
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Create a temporary client-side ID for optimistic updates using UUID when available
+    const tempId = `temp-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}`;
     
     const newTodo = {
       ...todo,
@@ -357,41 +378,68 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const rescheduleTodo = async (id: string, newDate: string) => {
     const todoToUpdate = todos.find(t => t.id === id)
     if (!todoToUpdate) {
-      console.log('❌ Todo not found:', id)
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('❌ Todo not found:', id)
+      }
       return
     }
 
-    console.log('🎯 Starting reschedule flow:', { id, newDate })
-    console.log('📅 Previous due date:', todoToUpdate.dueDate)
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🎯 Starting reschedule flow:', { id, newDate })
+      console.log('📅 Previous due date:', todoToUpdate.dueDate)
+    }
 
     // Optimistic update
-    console.log('🔄 Applying optimistic update...')
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔄 Applying optimistic update...')
+    }
+    
     setTodos(prev => {
       const updated = prev.map(todo =>
         todo.id === id ? { ...todo, dueDate: newDate, updatedAt: new Date() } : todo
       )
-      console.log('📝 New todos state after optimistic update:', updated)
+      
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('📝 New todos state after optimistic update:', updated)
+      }
+      
       return updated
     })
 
     if (session?.user) {
-      console.log('👤 User is logged in, syncing with server...')
+      if (process.env.NODE_ENV !== 'production') {
+        console.log('👤 User is logged in, syncing with server...')
+      }
+      
       try {
-        console.log('📤 Sending update to server:', { id, dueDate: newDate })
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('📤 Sending update to server:', { id, dueDate: newDate })
+        }
+        
         const res = await fetch('/api/todos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, dueDate: newDate }),
         })
         const updatedTodo = await res.json()
-        console.log('📥 Server response:', updatedTodo)
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('📥 Server response:', updatedTodo)
+        }
 
         // Only update if the server response includes the new date
         if (updatedTodo.dueDate === newDate) {
-          console.log('✅ Server update successful, updating state with server response')
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('✅ Server update successful, updating state with server response')
+          }
+          
           setTodos(prev => {
             const updated = prev.map(todo => todo.id === id ? updatedTodo : todo)
-            console.log('📝 Final todos state:', updated)
+            
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('📝 Final todos state:', updated)
+            }
+            
             return updated
           })
         } else {
@@ -402,21 +450,31 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         }
       } catch (error) {
         console.error('❌ Failed to reschedule todo:', error)
-        console.log('⏮️ Reverting to previous state...')
+        
+        if (process.env.NODE_ENV !== 'production') {
+          console.log('⏮️ Reverting to previous state...')
+        }
 
         // Revert on error
         setTodos(prev => {
           const reverted = prev.map(todo =>
             todo.id === id ? { ...todo, dueDate: todoToUpdate.dueDate } : todo
           )
-          console.log('📝 Reverted todos state:', reverted)
+          
+          if (process.env.NODE_ENV !== 'production') {
+            console.log('📝 Reverted todos state:', reverted)
+          }
+          
           return reverted
         })
       }
-    } else {
+    } else if (process.env.NODE_ENV !== 'production') {
       console.log('👤 User not logged in, skipping server sync')
     }
-    console.log('✨ Reschedule flow complete')
+    
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('✨ Reschedule flow complete')
+    }
   }
 
   const deleteTodo = async (id: string) => {
@@ -777,50 +835,11 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         />
       )}
 
-      {/* <CommandPalette
-        todos={filteredTodos}
-        workspaces={workspaces}
-        currentWorkspace={currentWorkspace}
-        isOpen={isCommandPaletteOpen}
-        setIsOpen={setIsCommandPaletteOpen}
-        onTodoSelect={(todo) => {
-          const element = document.getElementById(`todo-${todo.id}`)
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            element.classList.add('highlight')
-            setTimeout(() => element.classList.remove('highlight'), 2000)
-          }
-        }}
-        onWorkspaceSwitch={setCurrentWorkspace}
-        onWorkspaceCreate={async (name) => {
-          try {
-            const res = await fetch('/api/workspaces', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name }),
-            });
-            if (res.ok) {
-              const workspace = await res.json();
-              setWorkspaces(prev => [...prev, workspace]);
-              setCurrentWorkspace(workspace.id);
-            }
-          } catch (error) {
-            console.error('Failed to create workspace:', error);
-          }
-        }}
-        onAddComment={addComment}
-        onAddTodo={addTodo}
-        onMarkCompleted={(todoId) => {
-          setTodos(prev => prev.map(todo => 
-            todo.id === todoId 
-              ? { ...todo, completed: true, updatedAt: new Date() }
-              : todo
-          ))
-        }}
-        onWorkspaceDelete={deleteWorkspace}
-        session={session}
-      /> 
-      {/* Will add in later */}
+      {/* 
+        TODO: Implement command palette feature
+        Tracking issue: #123 - Command Palette Implementation
+        Priority: Medium - Planned for next sprint
+      */}
     </div>
   )
 } 
