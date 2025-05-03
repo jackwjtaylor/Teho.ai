@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import Image from "next/image"
 import TodoInput from "@/components/todo-input"
 import AITodoInput from "@/components/ai-todo-input"
@@ -42,7 +42,7 @@ const usePersistentState = <T,>(key: string, initialValue: T) => {
 
   // Save to localStorage whenever value changes
   useEffect(() => {
-    console.log(`💾 Saving ${key} to localStorage:`, value)
+    // console.log(`💾 Saving ${key} to localStorage:`, value)
     localStorage.setItem(key, JSON.stringify(value))
   }, [key, value])
 
@@ -83,6 +83,41 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
   const { data: session } = useSession()
   const isMobile = useIsMobile();
+
+  // 2. Ref for drag-end timeout to avoid stale callbacks
+  const dragTimeoutRef = useRef<number | null>(null);
+
+  // 3. Clean up any pending drag timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (dragTimeoutRef.current !== null) {
+        clearTimeout(dragTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // 4. Centralize due-date calculation
+  const computeNewDueDate = (columnIndex: number, columns: number): Date => {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    if (columns === 3) {
+      if (columnIndex === 0) return today;
+      if (columnIndex === 1) {
+        const mid = new Date(today);
+        mid.setDate(today.getDate() + 3);
+        return mid;
+      }
+      const beyond = new Date(today);
+      beyond.setDate(today.getDate() + 14);
+      return beyond;
+    } else if (columns === 2) {
+      if (columnIndex === 0) return today;
+      const mid = new Date(today);
+      mid.setDate(today.getDate() + 7);
+      return mid;
+    }
+    return today;
+  };
 
   // Initialize user settings on first load: if no DB record exists, seed with defaults (browser timezone)
   useEffect(() => {
@@ -156,78 +191,67 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   // Define the sync function outside the effects so it can be reused
   const syncWithServer = async () => {
     if (!session?.user) return;
-    
     try {
       if (process.env.NODE_ENV !== 'production') {
         console.log('📡 Syncing todos with server...');
       }
-      
-      const res = await fetch('/api/todos')
-      const remoteTodos = await res.json() as Todo[]
 
-      // Helper function to generate a content hash for comparison
-      const getContentHash = (todo: Todo) => {
-        return `${todo.title?.toLowerCase().trim() || ''}_${todo.dueDate || ''}_${todo.urgency || 1}`
-      }
+      const res = await fetch('/api/todos');
+      const remoteTodos = await res.json() as Todo[];
 
-      // Helper function to update a remote todo
-      const updateRemoteTodo = async (todoId: string, updates: { completed: boolean }) => {
-        try {
-          await fetch('/api/todos', {
+      // Helper to generate content hash
+      const getContentHash = (todo: Todo) =>
+        `${todo.title?.toLowerCase().trim() || ''}_${todo.dueDate || ''}_${todo.urgency || 1}`;
+
+      // Map remote todos by ID
+      const remoteMap = new Map(remoteTodos.map(todo => [todo.id, todo]));
+
+      // Determine which todos to update vs create
+      const todosToPut: { id: string; updates: Partial<{ completed: boolean; dueDate: string | null; workspaceId: string | null }> }[] = [];
+      const todosToPost: Todo[] = [];
+
+      todos.forEach(localTodo => {
+        const remoteTodo = remoteMap.get(localTodo.id);
+        if (remoteTodo) {
+          const updates: any = {};
+          if (remoteTodo.completed !== localTodo.completed) updates.completed = localTodo.completed;
+          if (remoteTodo.dueDate !== localTodo.dueDate) updates.dueDate = localTodo.dueDate;
+          if (remoteTodo.workspaceId !== localTodo.workspaceId) updates.workspaceId = localTodo.workspaceId;
+          if (Object.keys(updates).length > 0) {
+            todosToPut.push({ id: localTodo.id, updates });
+          }
+        } else {
+          todosToPost.push(localTodo);
+        }
+      });
+
+      // Send all PUT and POST requests
+      await Promise.all([
+        ...todosToPut.map(({ id, updates }) =>
+          fetch('/api/todos', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ id: todoId, ...updates }),
+            body: JSON.stringify({ id, ...updates }),
           })
-        } catch (error) {
-          console.error('Failed to update remote todo:', error)
-        }
-      }
-
-      // Create maps of remote todos
-      const remoteMap = new Map(remoteTodos.map((todo: Todo) => [todo.id, todo]))
-      const remoteContentMap = new Map(remoteTodos.map((todo: Todo) => [
-        getContentHash(todo),
-        todo
-      ]))
-
-      // Find local-only todos that don't exist on server by content
-      const localOnlyTodos = todos.filter(todo => {
-        const contentHash = getContentHash(todo)
-        const matchingRemoteTodo = remoteContentMap.get(contentHash)
-
-        // If no content match found, or if content matches but completion status differs
-        if (!matchingRemoteTodo) {
-          return true // Truly new todo
-        }
-
-        // If content matches but completion status is different, update the remote todo
-        if (matchingRemoteTodo.completed !== todo.completed) {
-          updateRemoteTodo(matchingRemoteTodo.id, { completed: todo.completed })
-          return false
-        }
-
-        return false // Skip if content matches and no updates needed
-      })
-
-      // Sync local-only todos to server
-      const syncPromises = localOnlyTodos.map(todo =>
-        fetch('/api/todos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: todo.title,
-            dueDate: todo.dueDate,
-            urgency: todo.urgency,
-            completed: todo.completed
-          }),
-        }).then(res => res.json())
-      )
-
-      const syncedTodos = await Promise.all(syncPromises)
+        ),
+        ...todosToPost.map(todo =>
+          fetch('/api/todos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              title: todo.title,
+              dueDate: todo.dueDate,
+              urgency: todo.urgency,
+              completed: todo.completed,
+              workspaceId: todo.workspaceId,
+            }),
+          })
+        ),
+      ]);
 
       // Fetch the latest state from server after all syncs and updates
-      const finalRes = await fetch('/api/todos')
-      const finalTodos = (await finalRes.json()) as Todo[]
+      const finalRes = await fetch('/api/todos');
+      const finalTodos = (await finalRes.json()) as Todo[];
 
       // Dedupe todos by content hash before setting state
       const uniqueTodos = Array.from(
@@ -267,7 +291,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     
     // Clean up interval on unmount
     return () => clearInterval(syncInterval);
-  }, [session?.user, todos]); // Re-establish interval when todos change
+  }, [session?.user]); // Re-establish interval when todos change
 
   // Load workspaces when session changes
   useEffect(() => {
@@ -640,7 +664,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     }
   }
 
-  const handleDragEnd = (result: DropResult) => {
+  const handleDragEnd = useCallback((result: DropResult) => {
     if (isMobile) return; // Prevent drag end handling on mobile
     
     const { destination, source, draggableId } = result;
@@ -656,59 +680,19 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     const todo = todos.find(t => t.id === draggableId);
     if (!todo) return;
 
-    // Calculate new due date based on destination column
-    // Start with today's date at midnight to ensure consistent dates across timezones
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    let newDueDate = today;
-    
-    if (destination.droppableId.startsWith('desktop')) {
-      const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
-      if (Number.isNaN(columnIndex)) {
-        console.warn('Unhandled droppableId:', destination.droppableId);
-        return;
-      }
-      
-      if (columnIndex === 0) {
-        // Today's column - set to today
-        newDueDate = new Date(today);
-      } else if (columnIndex === 1) {
-        // Next 7 days column - set to the middle of the range (today + 3 days)
-        const nextWeek = new Date(today);
-        nextWeek.setDate(today.getDate() + 3);
-        newDueDate = nextWeek;
-      } else {
-        // Upcoming column - set to beyond next week
-        const upcoming = new Date(today);
-        upcoming.setDate(today.getDate() + 14);
-        newDueDate = upcoming;
-      }
-    } else if (destination.droppableId.startsWith('tablet')) {
-      const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
-      if (Number.isNaN(columnIndex)) {
-        console.warn('Unhandled droppableId:', destination.droppableId);
-        return;
-      }
-      
-      if (columnIndex === 0) {
-        // Today's column
-        newDueDate = new Date(today);
-      } else {
-        // Upcoming column - set to the middle of upcoming range (today + 7 days)
-        const upcoming = new Date(today);
-        upcoming.setDate(today.getDate() + 7);
-        newDueDate = upcoming;
-      }
+    // Compute new due date based on destination column
+    const isDesktop = destination.droppableId.startsWith('desktop');
+    const isTablet = destination.droppableId.startsWith('tablet');
+    const cols = isDesktop ? 3 : isTablet ? 2 : 1;
+    const parts = destination.droppableId.split('-');
+    const colIdx = parseInt(parts[parts.length - 1]!, 10);
+    if (Number.isNaN(colIdx)) {
+      console.warn('Unhandled droppableId:', destination.droppableId);
+      return;
     }
-
-    // Format date as YYYY-MM-DD to avoid timezone issues
-    const formattedDate = `${newDueDate.getFullYear()}-${String(newDueDate.getMonth() + 1).padStart(2, '0')}-${String(newDueDate.getDate()).padStart(2, '0')}`;
-    
-    // Update the todo's due date (midnight in local timezone)
-    const updatedTodo = {
-      ...todo,
-      dueDate: `${formattedDate}T00:00:00.000Z`
-    };
+    const newDateObj = computeNewDueDate(colIdx, cols);
+    const formattedDate = `${newDateObj.getFullYear()}-${String(newDateObj.getMonth() + 1).padStart(2, '0')}-${String(newDateObj.getDate()).padStart(2, '0')}`;
+    const updatedTodo = { ...todo, dueDate: `${formattedDate}T00:00:00.000Z` };
 
     // Create new array with updated todo
     const newTodos = todos.filter(t => t.id !== draggableId);
@@ -722,7 +706,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
     // Update the database after animations finish
     if (session?.user) {
-      setTimeout(async () => {
+      dragTimeoutRef.current = window.setTimeout(async () => {
         try {
           const res = await fetch('/api/todos', {
             method: 'PUT',
@@ -731,15 +715,13 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           });
           if (!res.ok) throw new Error('Failed to update todo via drag-and-drop');
           const serverTodo = await res.json();
-          // Sync state with server response
           setTodos(prev => prev.map(t => t.id === draggableId ? serverTodo : t));
-          console.log('✅ Todo dueDate updated on server via drag:', serverTodo);
-        } catch (error) {
-          console.error('❌ Error updating todo via drag:', error);
+        } catch (err) {
+          console.error('❌ Error updating todo via drag:', err);
         }
       }, 350);
     }
-  };
+  }, [isMobile, todos, session?.user]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
