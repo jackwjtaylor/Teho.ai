@@ -90,15 +90,15 @@ export default function RemindersDialog({ open, onOpenChange }: RemindersDialogP
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] sm:h-[600px] overflow-hidden bg-background">
-        <DialogHeader className="px-6 pt-4 pb-3 border-b">
-          <DialogTitle className="flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <FaBell className="w-5 h-5" />
+      <DialogContent className="sm:max-w-[500px] w-[calc(100%-24px)] mx-auto h-[90vh] sm:h-[600px] overflow-hidden bg-background">
+        <DialogHeader className="px-4 sm:px-6 pt-4 pb-3 border-b">
+          <DialogTitle className="flex items-center gap-2 text-xl sm:text-2xl font-semibold tracking-tight">
+            <FaBell className="w-4 h-4 sm:w-5 sm:h-5" />
             Reminders
           </DialogTitle>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 px-6 py-4">
+        <ScrollArea className="flex-1 px-4 sm:px-6 py-4">
           {isLoading ? (
             <div className="flex items-center justify-center h-32">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -109,24 +109,24 @@ export default function RemindersDialog({ open, onOpenChange }: RemindersDialogP
               <p className="text-muted-foreground">No reminders yet</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {reminders.map((reminder) => (
                 <div
                   key={reminder.id}
-                  className="p-4 rounded-lg border bg-card"
+                  className="p-3 sm:p-4 rounded-lg border bg-card"
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start justify-between gap-2 sm:gap-4">
                     <div className="flex-1 space-y-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-medium">{reminder.title}</h3>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-medium text-sm sm:text-base">{reminder.title}</h3>
                         <Badge 
                           variant="secondary"
-                          className={getStatusColor(reminder.status)}
+                          className={`${getStatusColor(reminder.status)} text-xs`}
                         >
                           {reminder.status}
                         </Badge>
                       </div>
-                      <p className="text-sm text-muted-foreground">
+                      <p className="text-xs sm:text-sm text-muted-foreground">
                         {reminder.description}
                       </p>
                       <p className="text-xs text-muted-foreground">
@@ -138,9 +138,9 @@ export default function RemindersDialog({ open, onOpenChange }: RemindersDialogP
                         variant="ghost"
                         size="icon"
                         onClick={() => handleCancelReminder(reminder.id)}
-                        className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-500/10"
+                        className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-500/10 h-8 w-8 sm:h-9 sm:w-9"
                       >
-                        <FaTimes className="w-4 h-4" />
+                        <FaTimes className="w-3 h-3 sm:w-4 sm:h-4" />
                       </Button>
                     )}
                   </div>

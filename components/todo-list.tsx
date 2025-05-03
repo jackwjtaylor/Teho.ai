@@ -268,14 +268,14 @@ const StaticColumn = ({
         <div className="sticky bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-gray-100 dark:from-[#09090B] to-transparent z-[5] pointer-events-none"></div>
         
         {/* Scroll indicator - only shows if there are todos AND there's overflow */}
-        {!isEmpty && hasOverflow && (
+        {/* {!isEmpty && hasOverflow && (
           <motion.div 
             style={{ opacity }}
             className="absolute bottom-1 left-1/2 -translate-x-1/2 animate-bounce text-gray-400 z-10 pointer-events-none"
           >
             <FaChevronDown className="h-4 w-4" />
           </motion.div>
-        )}
+        )} */}
       </div>
     </div>
   );
