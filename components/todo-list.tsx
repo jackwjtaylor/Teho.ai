@@ -399,7 +399,7 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
           label={`All Tasks (${todos.length})`}
           isEmpty={todos.length === 0}
         >
-          {renderTodos(todos.sort(sortByDueDate), "mobile-static")}
+          {renderTodos([...todos].sort(sortByDueDate), "mobile-static")}
         </StaticColumn>
       </div>
     );

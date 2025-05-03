@@ -593,7 +593,12 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     // Calculate new due date based on destination column
     let newDueDate = new Date();
     if (destination.droppableId.startsWith('desktop')) {
-      const columnIndex = parseInt(destination.droppableId.split('-')[2]);
+      const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
+      if (Number.isNaN(columnIndex)) {
+        console.warn('Unhandled droppableId:', destination.droppableId);
+        return;
+      }
+      
       if (columnIndex === 0) {
         // Today's column - keep current date
         newDueDate = new Date();
@@ -605,7 +610,12 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         newDueDate.setDate(newDueDate.getDate() + 8);
       }
     } else if (destination.droppableId.startsWith('tablet')) {
-      const columnIndex = parseInt(destination.droppableId.split('-')[2]);
+      const columnIndex = Number.parseInt(destination.droppableId.split('-')[2] ?? '', 10);
+      if (Number.isNaN(columnIndex)) {
+        console.warn('Unhandled droppableId:', destination.droppableId);
+        return;
+      }
+      
       if (columnIndex === 0) {
         // Today's column
         newDueDate = new Date();

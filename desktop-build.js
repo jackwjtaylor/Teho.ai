@@ -44,7 +44,11 @@ fs.copyFileSync('tailwind.config.ts', path.join(tempDir, 'tailwind.config.ts'));
 fs.copyFileSync('postcss.config.mjs', path.join(tempDir, 'postcss.config.mjs'));
 fs.copyFileSync('tsconfig.json', path.join(tempDir, 'tsconfig.json'));
 fs.copyFileSync('package.json', path.join(tempDir, 'package.json'));
-fs.copyFileSync('.env', path.join(tempDir, '.env'));
+if (fs.existsSync('.env')) {
+  fs.copyFileSync('.env', path.join(tempDir, '.env'));
+} else {
+  console.warn('⚠️  No root .env file found – continuing without it.');
+}
 
 // Read from a desktop-specific env file if it exists, or create one
 let envLocal = 'NEXT_PUBLIC_IS_DESKTOP=true\n';
@@ -141,7 +145,7 @@ const nextConfig = {
   
   // Desktop-specific overrides
   output: 'export',
-  distDir: '../out',
+  distDir: 'out', // Use a path inside the project directory
   
   // No basePath for desktop
   basePath: '',
@@ -180,6 +184,23 @@ try {
   process.chdir(tempDir);
   execSync('bun run next build', { stdio: 'inherit' });
   console.log('Next.js build completed successfully!');
+  
+  // Copy the build output to the project root's out directory
+  const tempOutDir = path.join(tempDir, 'out');
+  const projectOutDir = path.join(originalDir, 'out');
+  
+  // Create the output directory if it doesn't exist
+  if (!fs.existsSync(projectOutDir)) {
+    fs.mkdirSync(projectOutDir, { recursive: true });
+  } else {
+    // Clean the output directory before copying
+    fs.rmSync(projectOutDir, { recursive: true, force: true });
+    fs.mkdirSync(projectOutDir, { recursive: true });
+  }
+  
+  // Copy the build output to the project root
+  copyRecursive(path.relative(process.cwd(), tempOutDir), projectOutDir);
+  console.log('Build files copied to project root out directory');
 } catch (error) {
   console.error('Next.js build failed:', error);
   process.chdir(originalDir);
