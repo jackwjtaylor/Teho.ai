@@ -121,7 +121,9 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
 
   return (
     <div className="mb-8">
-      <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] dark:shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] dark:shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] dark:shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] dark:shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] dark:shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)] overflow-hidden transition-colors duration-200">
+      <div className="backdrop-blur-sm bg-white/95 dark:bg-[#131316]/95 rounded-[14px] shadow-[0px_4px_12px_rgba(0,0,0,0.08)] dark:shadow-[0px_8px_40px_rgba(0,0,0,0.35)] border border-black/[0.04] dark:border-white/[0.06] backdrop-filter overflow-hidden transition-colors duration-200 relative
+      before:absolute before:inset-0 before:rounded-[14px] before:border before:border-white/[0.12] dark:before:border-white/[0.04] before:z-[-1] 
+      after:absolute after:inset-0 after:rounded-[14px] after:bg-[url('/noise-light.png')] after:opacity-[0.03] after:z-[-1] dark:after:opacity-[0.07]">
         <div className="p-5">
           <div className="flex items-center gap-2">
             <input
@@ -137,7 +139,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
             {step === "text" && text.trim() && (
               <button
                 onClick={handleTextSubmit}
-                className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                className="md:hidden p-1 rounded-full hover:bg-gray-100/80 dark:hover:bg-white/10 transition-colors"
               >
                 <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
               </button>
@@ -151,7 +153,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10"
+                className="mt-2 pt-2 border-t border-gray-200/70 dark:border-white/10"
               >
                 <div className="flex items-center">
                   <span className="text-xs text-gray-500 mr-2">When:</span>
@@ -169,7 +171,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                     {step === "date" && date.trim() && !isDateLoading && (
                       <button
                         onClick={handleDateSubmit}
-                        className="md:hidden p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                        className="md:hidden p-1 rounded-full hover:bg-gray-100/80 dark:hover:bg-white/10 transition-colors"
                       >
                         <ArrowRight className="w-5 h-5 text-gray-400 dark:text-white/50" />
                       </button>
@@ -188,14 +190,14 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                className="mt-2 pt-2 border-t border-gray-200 dark:border-white/10"
+                className="mt-2 pt-2 border-t border-gray-200/70 dark:border-white/10"
               >
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-gray-500">Urgency:</span>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => incrementUrgency(-0.5)}
-                      className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center rounded-[8px] bg-gray-100/80 dark:bg-white/5 hover:bg-gray-200/90 dark:hover:bg-white/10 transition-colors border border-black/[0.03] dark:border-white/[0.06]"
                     >
                       <span className="text-gray-600 dark:text-gray-300">-</span>
                     </button>
@@ -209,13 +211,13 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
                     />
                     <button
                       onClick={() => incrementUrgency(0.5)}
-                      className="w-8 h-8 flex items-center justify-center rounded-[6px] bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                      className="w-8 h-8 flex items-center justify-center rounded-[8px] bg-gray-100/80 dark:bg-white/5 hover:bg-gray-200/90 dark:hover:bg-white/10 transition-colors border border-black/[0.03] dark:border-white/[0.06]"
                     >
                       <span className="text-gray-600 dark:text-gray-300">+</span>
                     </button>
                     <button
                       onClick={submitTodo}
-                      className="ml-2 px-4 h-8 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200"
+                      className="ml-2 px-4 h-8 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[8px] shadow-[0_0_10px_rgba(124,90,255,0.3),inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200 border border-[#7c5aff]/30"
                     >
                       Add Todo
                     </button>

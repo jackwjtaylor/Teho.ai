@@ -642,7 +642,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
                     />
                 )}
                 <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
-                <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} />
+                {/* <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} /> */}
                 <ThemeToggle />
                 <FeedbackWidget />
                 <LoginButton />

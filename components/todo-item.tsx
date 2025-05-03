@@ -44,15 +44,15 @@ const getStatusStyle = (dateStr: string) => {
   const diffHours = (dueDate.getTime() - now.getTime()) / (1000 * 60 * 60);
 
   if (diffHours <= 0) {
-    return "bg-gradient-to-r from-red-500/5 to-transparent dark:from-red-950/20 dark:to-transparent border-l-2 border-red-500/50 dark:border-red-500/30";
+    return "bg-gradient-to-r from-red-500/10 to-transparent dark:from-red-950/30 dark:to-transparent border-l-2 border-red-500/50 dark:border-red-500/30";
   } else if (diffHours <= 6) {
-    return "bg-gradient-to-r from-yellow-500/5 to-transparent dark:from-yellow-900/20 dark:to-transparent border-l-2 border-yellow-500/40 dark:border-yellow-500/30";
+    return "bg-gradient-to-r from-yellow-500/10 to-transparent dark:from-yellow-900/30 dark:to-transparent border-l-2 border-yellow-500/40 dark:border-yellow-500/30";
   } else if (diffHours <= 24) {
-    return "bg-gradient-to-r from-yellow-400/5 to-transparent dark:from-yellow-800/20 dark:to-transparent border-l-2 border-yellow-400/40 dark:border-yellow-400/20";
+    return "bg-gradient-to-r from-yellow-400/10 to-transparent dark:from-yellow-800/30 dark:to-transparent border-l-2 border-yellow-400/40 dark:border-yellow-400/20";
   } else if (diffHours <= 72) {
-    return "bg-gradient-to-r from-green-400/5 to-transparent dark:from-green-900/20 dark:to-transparent border-l-2 border-green-400/40 dark:border-green-400/20";
+    return "bg-gradient-to-r from-green-400/10 to-transparent dark:from-green-900/30 dark:to-transparent border-l-2 border-green-400/40 dark:border-green-400/20";
   } else {
-    return "bg-gradient-to-r from-green-500/5 to-transparent dark:from-green-950/20 dark:to-transparent border-l-2 border-green-500/30 dark:border-green-500/20";
+    return "bg-gradient-to-r from-green-500/10 to-transparent dark:from-green-950/30 dark:to-transparent border-l-2 border-green-500/30 dark:border-green-500/20";
   }
 };
 
@@ -237,7 +237,9 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
   return (
     <div
       id={`todo-${todo.id}`}
-      className={`bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] dark:shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] dark:shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] dark:shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] dark:shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] dark:shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)] overflow-hidden transition-colors duration-200`}
+      className={`backdrop-blur-sm bg-white/95 dark:bg-[#131316]/95 rounded-[14px] shadow-[0px_4px_12px_rgba(0,0,0,0.08)] dark:shadow-[0px_8px_40px_rgba(0,0,0,0.35)] border border-black/[0.04] dark:border-white/[0.06] backdrop-filter overflow-hidden transition-colors duration-200 relative
+      before:absolute before:inset-0 before:rounded-[14px] before:border before:border-white/[0.12] dark:before:border-white/[0.04] before:z-[-1]
+      after:absolute after:inset-0 after:rounded-[14px] after:bg-[url('/noise-light.png')] after:opacity-[0.03] after:z-[-1] dark:after:opacity-[0.07]`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
@@ -272,9 +274,11 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   e.stopPropagation()
                   onToggle(todo.id)
                 }}
-                className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full border ${
-                  todo.completed ? "bg-[#7c5aff]/20 border-[#7c5aff]/30" : "border-gray-300 dark:border-white/30"
-                } flex items-center justify-center transition-colors`}
+                className={`mt-0.5 flex-shrink-0 w-5 h-5 rounded-full ${
+                  todo.completed ? 
+                  "bg-[#7c5aff]/10 border border-[#7c5aff]/30 shadow-[0_0_12px_rgba(124,90,255,0.1)]" : 
+                  "border border-gray-300/70 dark:border-white/30 bg-white/80 dark:bg-white/5"
+                } flex items-center justify-center transition-all`}
               >
                 {todo.completed && (
                   <Check className="w-3 h-3 text-[#7c5aff]" />
@@ -303,7 +307,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                   <div className="flex items-center relative">
                     {isHovered && (
                       <div
-                        className="absolute right-0 h-full w-32 bg-gradient-to-l from-white/90 via-white/80 to-transparent dark:from-[#131316]/95 dark:via-[#131316]/70 dark:to-transparent z-[1] top-0 -mt-3 rounded-r-[12px] transition-opacity duration-200"
+                        className="absolute right-0 h-full w-32 bg-gradient-to-l from-white/90 via-white/80 to-transparent dark:from-[#131316]/95 dark:via-[#131316]/70 dark:to-transparent z-[1] top-0 -mt-3 rounded-r-[14px] transition-opacity duration-200"
                         style={{ 
                           width: '40%',
                           right: '-16px'
@@ -316,7 +320,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                           e.stopPropagation()
                           setShowRescheduleDialog(true)
                         }}
-                        className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors z-[2]"
+                        className="absolute right-12 text-[#7c5aff] hover:text-[#8f71ff] transition-colors z-[2] drop-shadow-[0_0_5px_rgba(124,90,255,0.3)]"
                       >
                         <RotateCcw className="w-4 h-4" />
                       </button>
@@ -352,7 +356,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                       <span className="font-medium text-gray-400 dark:text-white/50">{todo.urgency.toFixed(1)}</span>
                       <div className="w-8 h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]"
+                          className="h-full bg-gradient-to-r from-[#7c5aff] to-[#6c47ff] shadow-[0_0_8px_rgba(124,90,255,0.4)]"
                           style={{ width: `${(todo.urgency / 5) * 100}%` }}
                         />
                       </div>
@@ -366,21 +370,21 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
         {isExpanded && (
           <div
-            className="border-t border-gray-200 dark:border-white/10 overflow-hidden relative rounded-b-[12px] transition-all duration-200"
+            className="border-t border-gray-200/70 dark:border-white/10 overflow-hidden relative rounded-b-[14px] transition-all duration-200"
           >
             {isReminderCommand && !isProcessingReminder && (
               <ShineBorder 
                 borderWidth={1}
                 duration={2}
                 shineColor={["#7c5aff", "#7c5aff"]}
-                className="rounded-b-[12px]"
+                className="rounded-b-[14px]"
                 style={{
-                  '--border-radius': '12px',
+                  '--border-radius': '14px',
                 } as React.CSSProperties}
               />
             )}
             {isProcessingReminder && (
-              <div className="absolute inset-0 bg-[#7c5aff]/5 dark:bg-[#7c5aff]/10 rounded-b-[12px] flex items-center justify-center">
+              <div className="absolute inset-0 bg-[#7c5aff]/5 dark:bg-[#7c5aff]/10 rounded-b-[14px] flex items-center justify-center">
                 <div className="w-5 h-5 border-2 border-[#7c5aff] border-t-transparent rounded-full animate-spin"></div>
               </div>
             )}
@@ -417,7 +421,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                                 {comment.text.startsWith('!!RMD!!') && (
                                   <>
                                     <div className="text-xs text-gray-400 dark:text-white/40">•</div>
-                                    <div className="text-xs text-[#7c5aff] dark:text-[#7c5aff] font-medium">
+                                    <div className="text-xs text-[#7c5aff] dark:text-[#7c5aff] font-medium drop-shadow-[0_0_3px_rgba(124,90,255,0.2)]">
                                       Reminder Set
                                     </div>
                                   </>
