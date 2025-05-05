@@ -12,6 +12,7 @@ interface WorkspaceSwitcherProps {
   onCreateNew: () => void
   onDelete: (id: string) => void
   todos: Todo[]
+  canCreateNew: boolean
 }
 
 export default function WorkspaceSwitcher({
@@ -20,7 +21,8 @@ export default function WorkspaceSwitcher({
   onSwitch,
   onCreateNew,
   onDelete,
-  todos
+  todos,
+  canCreateNew,
 }: WorkspaceSwitcherProps) {
   const [isOpen, setIsOpen] = useState(false)
   const current = workspaces.find(w => w.id === currentWorkspace)
@@ -96,10 +98,16 @@ export default function WorkspaceSwitcher({
             ))}
             <button
               onClick={() => {
-                onCreateNew()
+                if (canCreateNew) {
+                  onCreateNew()
+                }
                 setIsOpen(false)
               }}
-              className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white transition-colors duration-200 flex items-center gap-2"
+              disabled={!canCreateNew}
+              className={
+                `w-full px-4 py-2 text-left text-sm transition-colors duration-200 flex items-center gap-2 ` +
+                `${canCreateNew ? 'hover:bg-gray-100 dark:hover:bg-white/5 text-gray-900 dark:text-white' : 'opacity-50 cursor-not-allowed text-gray-500 dark:text-gray-600'}`
+              }
             >
               <FaPlus className="w-3 h-3" />
               <span>New Workspace</span>

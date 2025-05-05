@@ -16,6 +16,11 @@ A blazingly fast, feature-rich todo application built with Next.js 13+, React, a
 - 🔒 Google authentication
 - 📊 Featurebase feedback integration
 
+## Current Items in Implementation:
+
+- [ ] MCP Server for Workspaces
+- [ ] Add Stripe on trial/subscription end etc emails via resend.
+
 ## Tech Stack
 
 - **Framework:** Next.js 15+

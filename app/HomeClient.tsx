@@ -13,7 +13,7 @@ import LoginButton from "@/components/LoginButton"
 import FeedbackWidget from "@/components/feedback-widget"
 import type { Todo, Comment, Workspace } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
-import { useSession } from "@/lib/auth-client"
+import { useSession, subscription } from "@/lib/auth-client"
 import WorkspaceSwitcher from "@/components/workspace-switcher"
 import NewWorkspaceDialog from "@/components/new-workspace-dialog"
 import { toast } from 'sonner'
@@ -83,6 +83,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
   const { data: session } = useSession()
   const isMobile = useIsMobile();
+  // Track active subscription plan for workspace limits
+  const [activePlan, setActivePlan] = useState<string | null>(null)
 
   // 2. Ref for drag-end timeout to avoid stale callbacks
   const dragTimeoutRef = useRef<number | null>(null);
@@ -329,6 +331,31 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
     fetchWorkspaces();
   }, [session?.user]);
+
+  // Track active subscription plan for workspace limits
+  useEffect(() => {
+    if (!session?.user) {
+      setActivePlan(null)
+      return
+    }
+    ;(async () => {
+      try {
+        // Fetch subscriptions and default to empty array if null
+        const resp = await subscription.list()
+        const subs = resp.data ?? []
+        const activeSub = subs.find(
+          s => s.status === "active" || s.status === "trialing"
+        )
+        setActivePlan(activeSub?.plan ?? null)
+      } catch (error) {
+        console.error("Failed to fetch subscriptions:", error)
+      }
+    })()
+  }, [session?.user])
+
+  // Determine workspace creation limit (free: 2, pro: 5)
+  const workspaceLimit = activePlan === "pro" ? 5 : 2
+  const canCreateWorkspace = workspaces.length < workspaceLimit
 
   const addTodo = async (todo: Todo) => {
     // Create a temporary client-side ID for optimistic updates using UUID when available
@@ -738,6 +765,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
             onCreateNew={() => setIsNewWorkspaceDialogOpen(true)}
             onDelete={deleteWorkspace}
             todos={todos}
+            canCreateNew={canCreateWorkspace}
           />
         )}
         <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />

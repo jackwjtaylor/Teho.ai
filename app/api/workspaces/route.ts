@@ -6,6 +6,7 @@ import { and, eq } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { requireSubscription } from '@/lib/requireSubscription';
 
 // Validation schema for workspace name
 const workspaceNameSchema = z.object({
@@ -59,18 +60,18 @@ export async function GET() {
 
 export async function POST(req: Request) {
   try {
-    // Get the cookie store asynchronously
+    // 1) Enforce plan limits and get userId (throws if unauthorized or over limit)
     const cookieStore = await cookies();
-    
-    const session = await auth.api.getSession({
-      headers: new Headers({
-        cookie: cookieStore.toString()
-      })
-    });
-    
-    // More robust session validation
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const headers = new Headers({ cookie: cookieStore.toString() });
+    let userId: string;
+    try {
+      const result = await requireSubscription(headers);
+      userId = result.userId;
+    } catch (err: any) {
+      // Unauthorized or quota exceeded
+      const msg = err.message || 'Unauthorized';
+      const status = msg.includes('limit') ? 403 : 401;
+      return NextResponse.json({ error: msg }, { status });
     }
 
     // Validate input
@@ -93,7 +94,7 @@ export async function POST(req: Request) {
       await tx.insert(workspaces).values({
         id: workspaceId,
         name,
-        ownerId: session.user.id,
+        ownerId: userId,
         createdAt: now,
         updatedAt: now,
       });
@@ -101,7 +102,7 @@ export async function POST(req: Request) {
       // Add owner as member
       await tx.insert(workspaceMembers).values({
         workspaceId,
-        userId: session.user.id,
+        userId: userId,
         role: 'owner',
       });
     });
@@ -109,7 +110,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ 
       id: workspaceId,
       name,
-      ownerId: session.user.id,
+      ownerId: userId,
       createdAt: now,
       updatedAt: now
     });

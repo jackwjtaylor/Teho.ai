@@ -64,6 +64,20 @@
       "when": 1745688216970,
       "tag": "0008_slim_unus",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1746410710724,
+      "tag": "0009_high_vindicator",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1746416172161,
+      "tag": "0010_young_monster_badoon",
+      "breakpoints": true
     }
   ]
 }

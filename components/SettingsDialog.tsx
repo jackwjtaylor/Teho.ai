@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getBrowserTimezone, addTimezoneHeader } from "@/lib/timezone-utils"
 import Link from "next/link"
 import LinkedAccountsSection from "./LinkedAccountsSection"
+import { useSession, subscription } from "@/lib/auth-client"
 
 interface SettingsDialogProps {
   open: boolean
@@ -28,11 +29,35 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     weeklyReview: false,
     timezone: getBrowserTimezone()
   })
+  const { data: session } = useSession()
+  const [plan, setPlan] = useState<string | null>(null)
+  const [isPortalLoading, setIsPortalLoading] = useState(false)
 
   // Prefetch settings on mount so dialog opens immediately with data
   useEffect(() => {
     fetchSettings()
   }, [])
+
+  // Fetch subscription plan when user session is available
+  useEffect(() => {
+    if (!session?.user) return
+    const fetchSubscription = async () => {
+      try {
+        const resp = await subscription.list()
+        const subs = resp.data ?? []
+        const active = subs.find(s => s.status === "active" || s.status === "trialing")
+        setPlan(active?.plan ?? "free")
+      } catch (err) {
+        console.error("Error fetching subscription:", err)
+        toast({
+          title: "Error",
+          description: "Failed to load subscription data",
+          variant: "destructive",
+        })
+      }
+    }
+    fetchSubscription()
+  }, [session?.user])
 
   // Precompute timezone options with local timezone first
   const allTimezones = useMemo(() => Intl.supportedValuesOf("timeZone"), [])
@@ -93,6 +118,30 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
       })
     } finally {
       setIsSaving(false)
+    }
+  }
+
+  // Launch Stripe Customer Portal
+  const handlePortal = async () => {
+    setIsPortalLoading(true)
+    try {
+      // @ts-ignore: upgrade method comes from stripe plugin and may not be typed
+      const result = await (subscription as any).upgrade({
+        plan: 'pro',
+        successUrl: window.location.origin + '/settings',
+        cancelUrl: window.location.origin + '/settings'
+      })
+      const url = result.data?.url
+      if (url) window.location.href = url
+    } catch (err) {
+      console.error("Error opening billing portal:", err)
+      toast({
+        title: "Error",
+        description: "Could not open billing portal",
+        variant: "destructive",
+      })
+    } finally {
+      setIsPortalLoading(false)
     }
   }
 
@@ -200,10 +249,32 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
           {/* Subscription Section */}
           <div className="space-y-2 sm:space-y-3">
             <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Subscription</h2>
-            <div className="rounded-lg border bg-muted/5 p-3 sm:p-4">
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                Premium features coming soon! Stay tuned for enhanced productivity tools and advanced AI capabilities.
-              </p>
+            <div className="rounded-lg border bg-muted/5 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+              <div>
+                <p className="text-sm sm:text-base">
+                  Plan: <span className="font-medium">{plan === null ? 'Loading...' : plan === 'pro' ? 'Pro' : 'Free'}</span>
+                </p>
+                {plan === 'pro' && (
+                  <p className="text-xs text-muted-foreground">
+                    You're on Pro — up to 5 workspaces included
+                  </p>
+                )}
+              </div>
+              {session?.user ? (
+                <Button onClick={handlePortal} disabled={plan === null || isPortalLoading}>
+                  {isPortalLoading ? (
+                    <Loader2 className="animate-spin h-4 w-4" />
+                  ) : plan === 'pro' ? (
+                    'Manage Subscription'
+                  ) : (
+                    'Upgrade to Pro'
+                  )}
+                </Button>
+              ) : (
+                <Link href="/api/auth/signin">
+                  <Button>Log in to manage</Button>
+                </Link>
+              )}
             </div>
           </div>
 
