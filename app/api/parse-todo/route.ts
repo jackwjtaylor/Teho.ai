@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server"
 import Redis from "ioredis"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
+import { z } from "zod"
+import { todos as todosTable } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { db } from "@/lib/db"
 
 // Redis for conversation memory
 const redis = process.env.REDIS_URL 
   ? new Redis(process.env.REDIS_URL)
   : null
+
+// Define Zod schema for validating todo data
+const TodoSchema = z.object({
+  title: z.string().min(1, "Title must not be empty"),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/, "Date must be in ISO format"),
+  urgency: z.string().or(z.number()).transform(val => {
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    return Math.min(Math.max(num, 1), 5);
+  }),
+});
 
 // Helper function to store conversation in Redis
 async function storeConversation(conversationId: string, data: any) {
@@ -65,6 +79,71 @@ async function convertRelativeDate(dateStr: string): Promise<string> {
     console.error(`❌ Error converting date:`, error)
     return dateStr // Return original string if conversion fails
   }
+}
+
+/**
+ * Dynamically generate time suggestions based on context
+ */
+function generateTimeSuggestions(title: string): Array<{ time: string, display: string }> {
+  console.log(`🕒 Generating time suggestions for: "${title}"`)
+  
+  // Map keywords to time suggestions
+  const keywordMap: Record<string, Array<{ time: string, display: string }>> = {
+    'breakfast': [
+      { time: '07:00:00', display: '7 AM' },
+      { time: '08:00:00', display: '8 AM' },
+      { time: '09:00:00', display: '9 AM' },
+    ],
+    'lunch': [
+      { time: '12:00:00', display: '12 PM' },
+      { time: '13:00:00', display: '1 PM' },
+      { time: '13:30:00', display: '1:30 PM' },
+    ],
+    'dinner': [
+      { time: '18:00:00', display: '6 PM' },
+      { time: '19:00:00', display: '7 PM' },
+      { time: '20:00:00', display: '8 PM' },
+    ],
+    'meeting': [
+      { time: '09:00:00', display: '9 AM' },
+      { time: '14:00:00', display: '2 PM' },
+      { time: '16:00:00', display: '4 PM' },
+    ],
+    'call': [
+      { time: '10:00:00', display: '10 AM' },
+      { time: '14:00:00', display: '2 PM' },
+      { time: '15:30:00', display: '3:30 PM' },
+    ],
+    'workout': [
+      { time: '06:00:00', display: '6 AM' },
+      { time: '18:00:00', display: '6 PM' },
+      { time: '20:00:00', display: '8 PM' },
+    ],
+    'investor': [
+      { time: '09:30:00', display: '9:30 AM' },
+      { time: '11:00:00', display: '11 AM' },
+      { time: '14:00:00', display: '2 PM' },
+    ],
+  }
+  
+  // Default suggestions (business hours)
+  const defaultSuggestions = [
+    { time: '09:00:00', display: '9 AM' },
+    { time: '14:00:00', display: '2 PM' },
+    { time: '16:00:00', display: '4 PM' },
+  ]
+  
+  // Check for matching keywords
+  const lowerTitle = title.toLowerCase()
+  for (const [keyword, suggestions] of Object.entries(keywordMap)) {
+    if (lowerTitle.includes(keyword)) {
+      console.log(`🔍 Matched keyword "${keyword}" in title, using specific suggestions`)
+      return suggestions
+    }
+  }
+  
+  console.log(`📋 Using default time suggestions`)
+  return defaultSuggestions
 }
 
 /**
@@ -128,12 +207,103 @@ function isTodoComplete(messageContent: string): boolean {
   return isComplete
 }
 
+/**
+ * Validate extracted values against Zod schema
+ */
+function validateTodoData(values: Record<string, string>): { 
+  valid: boolean; 
+  errors?: Record<string, string>;
+} {
+  console.log(`🔍 Validating todo data`)
+  
+  try {
+    // Only validate fields that are present
+    const fieldsToValidate: Record<string, any> = {}
+    if (values.title) fieldsToValidate.title = values.title
+    if (values.date) fieldsToValidate.date = values.date
+    if (values.urgency) fieldsToValidate.urgency = values.urgency
+    
+    // Partial validation for fields that are present
+    const partialSchema = z.object({
+      title: values.title ? TodoSchema.shape.title : z.string().optional(),
+      date: values.date ? TodoSchema.shape.date : z.string().optional(),
+      urgency: values.urgency ? TodoSchema.shape.urgency : z.any().optional(),
+    })
+    
+    partialSchema.parse(fieldsToValidate)
+    console.log(`✅ Todo data is valid`)
+    return { valid: true }
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const errors: Record<string, string> = {}
+      error.errors.forEach(err => {
+        if (err.path.length > 0) {
+          errors[err.path[0]] = err.message
+        }
+      })
+      console.error(`❌ Todo data validation failed:`, errors)
+      return { valid: false, errors }
+    }
+    console.error(`❌ Unexpected validation error:`, error)
+    return { valid: false, errors: { unknown: 'Unexpected validation error' } }
+  }
+}
+
+/**
+ * Check for loop detection (asking for same field multiple times)
+ */
+function checkForLoop(
+  fieldCounts: Record<string, number>,
+  currentField: string | undefined
+): { inLoop: boolean; loopField?: string } {
+  if (!currentField) return { inLoop: false }
+  
+  const threshold = 3 // Number of times to try asking before escalating
+  const count = fieldCounts[currentField] || 0
+  
+  if (count >= threshold) {
+    console.warn(`⚠️ Loop detected! Asked for "${currentField}" ${count} times`)
+    return { inLoop: true, loopField: currentField }
+  }
+  
+  return { inLoop: false }
+}
+
+/**
+ * Create urgency fallback message based on loop detection
+ */
+function createLoopFallbackMessage(loopField: string, values: Record<string, string>): string {
+  if (loopField === 'urgency') {
+    console.log(`🔄 Creating fallback message for urgency`)
+    const title = values.title?.toLowerCase() || ''
+    
+    // Define keywords that indicate high urgency
+    const highUrgencyKeywords = ['urgent', 'important', 'critical', 'deadline', 'asap', 'immediately', 'investor']
+    
+    // Check if title contains any high urgency keywords
+    const isHighUrgency = highUrgencyKeywords.some(keyword => title.includes(keyword))
+    const suggestedUrgency = isHighUrgency ? 4.5 : 3.0
+    
+    return `I'll set this to ${suggestedUrgency} out of 5 urgency based on the description. You can adjust this later.`
+  }
+  
+  if (loopField === 'date') {
+    return `I'll need a specific date and time. Would you like me to set this for today?`
+  }
+  
+  return `I'm having trouble understanding your input for ${loopField}. Could you provide it in a different way?`
+}
+
 // Define the system prompt with detailed examples
-const SYSTEM_PROMPT = `
+const createSystemPrompt = async (userId?: string, workspaceId?: string) => {
+  const currentTime = new Date().toISOString()
+  const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' })
+  
+  let prompt = `
 You are a concise todo assistant that helps users create structured todos.
 
-Current time: ${new Date().toISOString()}
-Today: ${new Date().toLocaleDateString('en-US', { weekday: 'long' })}
+Current time: ${currentTime}
+Today: ${todayName}
 
 Required tags:
 <title>Clear title without date/time info (e.g. "Meet with investor" not "Meet investor tomorrow")</title>
@@ -153,28 +323,64 @@ Key rules:
 3. Always convert relative dates to absolute
 4. Provide contextual suggestions (morning for breakfast, etc.)
 5. Keep responses direct and to the point
+6. If you have a date, DO NOT ask for it again
+7. If there's a mention of "investor", "deadline", "urgent", set urgency to 4.5 automatically
+8. Don't go in circles - listen carefully to user input
+9. After 3 attempts to get a field, provide a reasonable default
+10. When a user indicates a relative date like "tomorrow" or "next week", directly convert it
 
 Examples:
 
 User: "Meet investors tomorrow"
 Assistant: <title>Meet with investors</title>
-<follow_up>What time works best?</follow_up>
-<suggestion type="time" value="09:00:00">9 AM</suggestion>
-<suggestion type="time" value="14:00:00">2 PM</suggestion>
-<suggestion type="time" value="16:00:00">4 PM</suggestion>
-<still_needed>time,urgency</still_needed>
-
-User: "9am"
-Assistant: <title>Meet with investors</title>
 <date>2024-04-28T09:00:00</date>
 <follow_up>How urgent is this meeting? (1-5)</follow_up>
+<suggestion type="urgency" value="4.5">High (4.5)</suggestion>
+<suggestion type="urgency" value="3.0">Medium (3)</suggestion>
 <still_needed>urgency</still_needed>
 
 User: "4"
 Assistant: <title>Meet with investors</title>
 <date>2024-04-28T09:00:00</date>
 <urgency>4.0</urgency>
-<todo_complete>`
+<todo_complete>
+
+User: "finish project by friday"
+Assistant: <title>Finish project</title>
+<date>2024-05-03T17:00:00</date>
+<follow_up>How urgent is this task? (1-5)</follow_up>
+<suggestion type="urgency" value="4.0">High (4)</suggestion>
+<suggestion type="urgency" value="3.0">Medium (3)</suggestion>
+<still_needed>urgency</still_needed>
+`
+
+  // Include user's workspace todos for context if workspace ID is provided
+  if (userId && workspaceId) {
+    try {
+      console.log(`🔍 Fetching todos for workspace context`)
+      const recentTodos = await db.select({
+        title: todosTable.title,
+        urgency: todosTable.urgency,
+        dueDate: todosTable.dueDate,
+      })
+      .from(todosTable)
+      .where(eq(todosTable.workspaceId, workspaceId))
+      .limit(10)
+      
+      if (recentTodos.length > 0) {
+        prompt += `\nRecent todos in this workspace:\n`
+        recentTodos.forEach(todo => {
+          prompt += `- "${todo.title}" (Urgency: ${todo.urgency}, Due: ${todo.dueDate || 'unspecified'})\n`
+        })
+        console.log(`✅ Added ${recentTodos.length} workspace todos to context`)
+      }
+    } catch (error) {
+      console.error(`❌ Error fetching workspace todos:`, error)
+    }
+  }
+  
+  return prompt
+}
 
 export async function POST(request: NextRequest) {
   console.log(`\n🔄 Starting todo parse request`)
@@ -182,12 +388,22 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body = await request.json()
-    const { message, conversationId, collectedValues = {}, pendingFields = [], currentField } = body
+    const { 
+      message, 
+      conversationId, 
+      collectedValues = {}, 
+      pendingFields = [], 
+      currentField,
+      userId,
+      workspaceId,
+      fieldAttempts = {} 
+    } = body
     
     console.log(`🆔 Conversation ID: ${conversationId}`)
     console.log(`💬 User message: "${message}"`)
     console.log(`🧩 Collected values:`, collectedValues)
     console.log(`🔍 Pending fields: ${pendingFields.join(', ') || 'none'}`)
+    console.log(`📊 Field attempts:`, fieldAttempts)
     
     // Try to retrieve existing conversation from Redis
     let existingConversation = null
@@ -198,23 +414,54 @@ export async function POST(request: NextRequest) {
       }
     }
     
+    // Track number of attempts for each field for loop detection
+    const updatedFieldAttempts = { ...fieldAttempts }
+    if (currentField) {
+      updatedFieldAttempts[currentField] = (updatedFieldAttempts[currentField] || 0) + 1
+      console.log(`🔢 Field "${currentField}" has been asked ${updatedFieldAttempts[currentField]} times`)
+    }
+    
+    // Check for loops
+    const { inLoop, loopField } = checkForLoop(updatedFieldAttempts, currentField)
+    
+    // If we're in a loop and have a field that's being repeatedly asked, provide a fallback value
+    let updatedCollectedValues = { ...collectedValues }
+    let fallbackApplied = false
+    let fallbackMessage = ''
+    
+    if (inLoop && loopField) {
+      console.log(`🔄 Applying fallback for loop in field: ${loopField}`)
+      fallbackMessage = createLoopFallbackMessage(loopField, collectedValues)
+      
+      // Set default value based on the field
+      if (loopField === 'urgency') {
+        const title = collectedValues.title?.toLowerCase() || ''
+        const highUrgencyKeywords = ['urgent', 'important', 'critical', 'deadline', 'asap', 'immediately', 'investor']
+        const isHighUrgency = highUrgencyKeywords.some(keyword => title.includes(keyword))
+        updatedCollectedValues.urgency = isHighUrgency ? '4.5' : '3.0'
+      }
+      
+      fallbackApplied = true
+    }
+    
     // Prepare conversation context
-    let contextPrompt = SYSTEM_PROMPT
+    const systemPrompt = await createSystemPrompt(userId, workspaceId)
+    let contextPrompt = systemPrompt
     
     // Add context about already collected values
-    if (Object.keys(collectedValues).length > 0 || pendingFields.length > 0) {
+    if (Object.keys(updatedCollectedValues).length > 0 || pendingFields.length > 0) {
       let contextMessage = "\n\nCurrent information:\n"
       
-      if (collectedValues.title) {
-        contextMessage += `Title: ${collectedValues.title}\n`
+      if (updatedCollectedValues.title) {
+        contextMessage += `Title: ${updatedCollectedValues.title}\n`
       }
       
-      if (collectedValues.date) {
-        contextMessage += `Date: ${collectedValues.date}\n`
+      if (updatedCollectedValues.date) {
+        contextMessage += `Date: ${updatedCollectedValues.date}\n`
       }
       
-      if (collectedValues.urgency) {
-        contextMessage += `Urgency: ${collectedValues.urgency}\n`
+      if (updatedCollectedValues.urgency) {
+        contextMessage += `Urgency: ${updatedCollectedValues.urgency}\n`
       }
       
       if (pendingFields.length > 0) {
@@ -225,32 +472,78 @@ export async function POST(request: NextRequest) {
         contextMessage += `\nAsking about: ${currentField}\n`
       }
       
+      // Add field attempt counts
+      contextMessage += `\nField attempts: ${Object.entries(updatedFieldAttempts)
+        .map(([field, count]) => `${field}=${count}`)
+        .join(', ')}\n`
+      
+      if (fallbackApplied) {
+        contextMessage += `\nFallback applied for ${loopField}. Message: ${fallbackMessage}\n`
+      }
+      
       contextPrompt += contextMessage
       console.log(`📝 Added context information to system prompt`)
     }
     
-    // Use AI SDK to generate response
-    console.log(`🤖 Generating response with AI SDK`)
-    const { text: assistantMessage } = await generateText({
-      model: openai('gpt-4o'),
-      system: contextPrompt,
-      prompt: message,
-      temperature: 0.7,
-      maxTokens: 500,
-    })
+    let assistantMessage = ''
     
-    console.log(`🤖 Assistant response: "${assistantMessage.substring(0, 100)}${assistantMessage.length > 100 ? '...' : ''}"`)
+    // If we're in a loop, we'll construct a mock assistant message
+    if (fallbackApplied && loopField) {
+      console.log(`🤖 Creating mock assistant response due to loop detection`)
+      
+      // Construct a response as if the assistant generated it
+      assistantMessage = `<title>${updatedCollectedValues.title || ''}</title>\n`
+      
+      if (updatedCollectedValues.date) {
+        assistantMessage += `<date>${updatedCollectedValues.date}</date>\n`
+      }
+      
+      if (updatedCollectedValues.urgency) {
+        assistantMessage += `<urgency>${updatedCollectedValues.urgency}</urgency>\n`
+      }
+      
+      assistantMessage += `<follow_up>${fallbackMessage}</follow_up>\n`
+      
+      // If all required fields are now present, mark as complete
+      const requiredFields = ['title', 'date', 'urgency']
+      const missingFields = requiredFields.filter(field => !updatedCollectedValues[field])
+      
+      if (missingFields.length === 0) {
+        assistantMessage += `<todo_complete>`
+      } else {
+        assistantMessage += `<still_needed>${missingFields.join(',')}</still_needed>`
+      }
+    } else {
+      // Use AI SDK to generate response
+      console.log(`🤖 Generating response with AI SDK`)
+      const { text: generatedMessage } = await generateText({
+        model: openai('gpt-4o'),
+        system: contextPrompt,
+        prompt: message,
+        temperature: 0.2, // Lower temperature for more consistent responses
+        maxTokens: 500,
+      })
+      
+      assistantMessage = generatedMessage
+      console.log(`🤖 Assistant response: "${assistantMessage.substring(0, 100)}${assistantMessage.length > 100 ? '...' : ''}"`)
+    }
     
     // Process the response
     const extractedValues = extractValues(assistantMessage)
     const stillNeeded = extractStillNeeded(assistantMessage)
     const isComplete = isTodoComplete(assistantMessage)
     
+    // Update collected values
+    const finalCollectedValues = { ...updatedCollectedValues, ...extractedValues }
+    
     // Handle date conversion if needed
     if (extractedValues.date && !extractedValues.date.includes('T')) {
       // Convert relative date to ISO
-      extractedValues.date = await convertRelativeDate(extractedValues.date)
+      finalCollectedValues.date = await convertRelativeDate(extractedValues.date)
     }
+    
+    // Validate the collected values
+    const validation = validateTodoData(finalCollectedValues)
     
     // Store conversation in Redis if needed
     if (redis) {
@@ -258,11 +551,10 @@ export async function POST(request: NextRequest) {
       const storageEntry = {
         message,
         response: assistantMessage,
-        values: {
-          ...collectedValues,
-          ...extractedValues
-        },
+        values: finalCollectedValues,
         pendingFields: stillNeeded,
+        fieldAttempts: updatedFieldAttempts,
+        validation,
         isComplete,
         updatedAt: new Date().toISOString()
       }
@@ -271,13 +563,23 @@ export async function POST(request: NextRequest) {
       await storeConversation(conversationId, storageEntry)
     }
     
+    // Generate time suggestions if needed
+    let suggestions: Array<{ time: string, display: string }> = []
+    if (stillNeeded.includes('time') && finalCollectedValues.title) {
+      suggestions = generateTimeSuggestions(finalCollectedValues.title)
+    }
+    
     // Prepare and return response
     const response = {
       text: extractedValues.follow_up || assistantMessage.replace(/<.*?>/g, '').trim(), // Use follow_up if available, otherwise clean HTML tags
       html: assistantMessage,
-      values: extractedValues,
+      values: finalCollectedValues,
       stillNeeded,
       isComplete,
+      validation,
+      fieldAttempts: updatedFieldAttempts,
+      fallbackApplied,
+      suggestions
     }
     
     console.log(`✅ Parse todo request completed`)
