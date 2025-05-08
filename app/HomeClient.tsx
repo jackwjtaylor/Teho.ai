@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import Image from "next/image"
 import TodoInput from "@/components/todo-input"
 import AITodoInput from "@/components/ai-todo-input"
 import TodoList from "@/components/todo-list"
@@ -11,6 +10,7 @@ import CompletedToggle from "@/components/completed-toggle"
 import ViewToggle from "@/components/view-toggle"
 import LoginButton from "@/components/LoginButton"
 import FeedbackWidget from "@/components/feedback-widget"
+import AgendaIcon from "@/components/AgendaIcon"
 import type { Todo, Comment, Workspace } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession, subscription } from "@/lib/auth-client"
@@ -21,6 +21,8 @@ import { addTimezoneHeader } from "@/lib/timezone-utils"
 import { DropResult } from '@hello-pangea/dnd'
 import SettingsDialog from "@/components/SettingsDialog"
 import { useSearchParams } from "next/navigation"
+import { useTheme } from "next-themes"
+import LandingHero from "@/components/LandingHero"
 
 interface HomeClientProps {
   initialTodos: Todo[]
@@ -77,6 +79,7 @@ const useIsMobile = () => {
 };
 
 export default function HomeClient({ initialTodos }: HomeClientProps) {
+  const [hasLocalData, setHasLocalData] = useState(false);
   const [todos, setTodos] = usePersistentState<Todo[]>('todos', initialTodos)
   const [showCompleted, setShowCompleted] = usePersistentState('showCompleted', false)
   const [isTableView, setIsTableView] = usePersistentState('isTableView', false)
@@ -87,9 +90,28 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const { data: session } = useSession()
   const isMobile = useIsMobile();
   const searchParams = useSearchParams()
+  const { resolvedTheme } = useTheme()
   // Track active subscription plan for workspace limits
   const [activePlan, setActivePlan] = useState<string | null>(null)
+  // Loading state to prevent UI flashing
+  const [isLoading, setIsLoading] = useState(true)
 
+  // Check for local todos, but only on the client side
+  useEffect(() => {
+    const storedTodos = localStorage.getItem('todos');
+    if (storedTodos !== null) {
+      try {
+        const parsedTodos = JSON.parse(storedTodos);
+        if (Array.isArray(parsedTodos) && parsedTodos.length > 0) {
+          setHasLocalData(true);
+          setIsLoading(false);
+        }
+      } catch (error) {
+        console.error('Failed to parse stored todos:', error);
+      }
+    }
+  }, []);
+  
   // 2. Ref for drag-end timeout to avoid stale callbacks
   const dragTimeoutRef = useRef<number | null>(null);
 
@@ -282,8 +304,13 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
   // Initial sync with server when logged in
   useEffect(() => {
-    if (!session?.user) return;
-    syncWithServer();
+    if (!session?.user) {
+      setIsLoading(false);
+      return;
+    }
+    syncWithServer().finally(() => {
+      setIsLoading(false);
+    });
   }, [session?.user]); // Only re-run when user session changes
   
   // Periodic sync with server every minute when logged in
@@ -302,6 +329,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   // Load workspaces when session changes
   useEffect(() => {
     if (!session?.user) return;
+    
+    setIsLoading(true); // Set loading when fetching workspaces
 
     const fetchWorkspaces = async () => {
       try {
@@ -330,6 +359,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         }
       } catch (error) {
         console.error('Failed to fetch workspaces:', error);
+      } finally {
+        setIsLoading(false); // Clear loading state regardless of success/failure
       }
     };
 
@@ -362,8 +393,8 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     })()
   }, [session?.user])
 
-  // Determine workspace creation limit (free: 2, pro: 5)
-  const workspaceLimit = activePlan === "pro" ? 5 : 2
+  // Determine workspace creation limit (free: 3, pro: 5)
+  const workspaceLimit = activePlan === "pro" ? 5 : 3
   const canCreateWorkspace = workspaces.length < workspaceLimit
 
   const addTodo = async (todo: Todo) => {
@@ -769,10 +800,21 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="flex flex-row items-center justify-left relative z-10">
-        <Image src="/logo.png" alt="agenda.dev" width={32} height={32} className="mr-2 block" />
+        <AgendaIcon className="w-8 h-8 mr-2" />
         <h1 className="text-xl hidden md:block">agenda.dev</h1>
       </div>
       <div className="absolute top-4 right-4 flex items-center space-x-2 justify-center md:mb-0 md:mx-0 md:justify-start z-20">
+        {session?.user && activePlan !== "pro" && (
+          <button
+            onClick={() => setShowSettings(true)}
+            className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] transition-colors duration-200"
+          >
+            <span className="text-sm text-gray-900 dark:text-white flex items-center">
+              <span className="text-violet-500 dark:text-violet-400 mr-1 text-xs">✨</span>
+              Upgrade
+            </span>
+          </button>
+        )}
         {session?.user && (
           <WorkspaceSwitcher
             workspaces={workspaces}
@@ -784,59 +826,72 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
             canCreateNew={canCreateWorkspace}
           />
         )}
-        <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
+        {session?.user && (
+          <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
+        )}
         {/* <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} /> */}
         <ThemeToggle />
         <FeedbackWidget />
         <LoginButton />
       </div>
 
-      <motion.div
-        layout
-        className="flex-1 flex flex-col w-full max-w-[1200px] mx-auto"
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-      >
-        {/* Mobile Input (at bottom) */}
-        <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-100 dark:bg-[#09090B] border-t border-gray-200 dark:border-white/10">
-          <AITodoInput onAddTodo={addTodo} />
+      {isLoading && !hasLocalData ? (
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-pulse text-center">
+            <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded mx-auto mb-2"></div>
+            <div className="h-4 w-48 bg-gray-200 dark:bg-gray-700 rounded mx-auto"></div>
+          </div>
         </div>
-        
-        {/* Desktop Input (at top) */}
+      ) : (!session?.user && !hasLocalData) ? (
+        <LandingHero />
+      ) : (
         <motion.div
-          initial={false}
-          className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'} hidden md:flex`}
+          layout
+          className="flex-1 flex flex-col w-full max-w-[1200px] mx-auto"
+          transition={{ duration: 0.3, ease: "easeInOut" }}
         >
+          {/* Mobile Input (at bottom) */}
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-100 dark:bg-[#09090B] border-t border-gray-200 dark:border-white/10">
+            <AITodoInput onAddTodo={addTodo} />
+          </div>
+          
+          {/* Desktop Input (at top) */}
           <motion.div
             initial={false}
-            className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky top-4 z-10 mb-8`}
+            className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'} hidden md:flex`}
           >
-            <AITodoInput onAddTodo={addTodo} />
-          </motion.div>
-        </motion.div>
-
-        <AnimatePresence mode="popLayout">
-          {filteredTodos.length > 0 && (
             <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.3 }}
-              className="md:pb-0 mt-4 md:mt-0" // Adjusted padding and added top margin for mobile
+              initial={false}
+              className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky top-4 z-10 mb-8`}
             >
-              <TodoList
-                todos={filteredTodos}
-                onToggle={toggleTodo}
-                onDelete={deleteTodo}
-                onAddComment={addComment}
-                onDeleteComment={deleteComment}
-                onReschedule={rescheduleTodo}
-                onDragEnd={handleDragEnd}
-                disableDrag={isMobile} // Pass the isMobile flag to disable drag on mobile
-              />
+              <AITodoInput onAddTodo={addTodo} />
             </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          </motion.div>
+
+          <AnimatePresence mode="popLayout">
+            {filteredTodos.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ duration: 0.3 }}
+                className="md:pb-0 mt-4 md:mt-0" // Adjusted padding and added top margin for mobile
+              >
+                <TodoList
+                  todos={filteredTodos}
+                  onToggle={toggleTodo}
+                  onDelete={deleteTodo}
+                  onAddComment={addComment}
+                  onDeleteComment={deleteComment}
+                  onReschedule={rescheduleTodo}
+                  onDragEnd={handleDragEnd}
+                  disableDrag={isMobile} // Pass the isMobile flag to disable drag on mobile
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {session?.user && (
         <>

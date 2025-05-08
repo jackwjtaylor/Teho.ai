@@ -100,23 +100,28 @@ export default function LoginButton() {
     <Dialog>
       <DialogTrigger asChild>
         <button
-          className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] transition-colors duration-200"
+          className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] transition-colors duration-200 hover:bg-gray-50 dark:hover:bg-[#1A1A1F]"
+          aria-label="Sign In"
         >
           <FaUser className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           <span className="text-sm text-gray-900 dark:text-white">Sign In</span>
         </button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-sm w-full p-2">
-        <DialogHeader>
-          <DialogTitle>Sign in to agenda.dev</DialogTitle>
-          <DialogDescription>Choose a login method</DialogDescription>
+      <DialogContent className="sm:max-w-sm w-full p-6 gap-6 rounded-xl shadow-lg border-gray-200 dark:border-white/[0.06]">
+        <DialogHeader className="gap-2 flex flex-col items-center">
+          <DialogTitle className="text-2xl font-bold text-gray-900 dark:text-white">Welcome Back</DialogTitle>
+          <DialogDescription className="text-gray-600 dark:text-gray-300">Sign in to continue with your todos</DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-2 pt-2">
+        <div className="flex flex-col gap-3">
           <GoogleSignInButton />
           <GithubSignInButton />
-          <TwitterSignInButton />
+          {/* <TwitterSignInButton /> */}
+        </div>
+        
+        <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-2">
+          By signing in, you agree to our <a href="/terms" className="text-[#7c5aff] hover:underline">Terms</a> and <a href="/privacy" className="text-[#7c5aff] hover:underline">Privacy Policy</a>
         </div>
       </DialogContent>
     </Dialog>

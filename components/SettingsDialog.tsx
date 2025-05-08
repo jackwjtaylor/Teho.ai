@@ -177,7 +177,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
 
         <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-y-auto flex-grow">
           {/* Linked Accounts Section */}
-          <LinkedAccountsSection />
+          
 
           {/* Subscription Section */}
           <div className="space-y-2 sm:space-y-3">
@@ -209,7 +209,53 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 </Link>
               )}
             </div>
+            
+            <div className="mt-4 pt-4 border-t">
+              <h3 className="text-sm font-medium mb-2">Plan Comparison</h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-muted/30 rounded-lg p-3">
+                  <h4 className="font-medium mb-2">Free</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-start">
+                      <span className="text-green-500 mr-1.5">✓</span>
+                      <span>Up to 3 workspaces</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-500 mr-1.5">✓</span>
+                      <span>Add 1 collaborator per workspace</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-green-500 mr-1.5">✓</span>
+                      <span>Basic AI model with limited context</span>
+                    </li>
+                  </ul>
+                </div>
+                <div className="bg-gradient-to-b from-violet-500/10 to-purple-500/5 rounded-lg p-3 border border-violet-200 dark:border-violet-900/40">
+                  <h4 className="font-medium mb-2">Pro</h4>
+                  <ul className="space-y-1 text-sm">
+                    <li className="flex items-start">
+                      <span className="text-violet-500 mr-1.5">✓</span>
+                      <span>Up to 5 workspaces</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-violet-500 mr-1.5">✓</span>
+                      <span>Add up to 5 users per workspace</span>
+                    </li>
+                    <li className="flex items-start">
+                      <span className="text-violet-500 mr-1.5">✓</span>
+                      <span>Advanced AI models with better context understanding</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground">
+              <span className="font-medium">Note:</span> You can only have one active subscription at a time.
+            </p>
           </div>
+
+          <LinkedAccountsSection />
 
           {/* Email Alerts Section */}
           <div className="space-y-4 sm:space-y-6">
