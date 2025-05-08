@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getBrowserTimezone, addTimezoneHeader } from "@/lib/timezone-utils"
 import Link from "next/link"
 import LinkedAccountsSection from "./LinkedAccountsSection"
-import { useSession, subscription } from "@/lib/auth-client"
+import { useSession, subscription, authClient } from "@/lib/auth-client"
 
 interface SettingsDialogProps {
   open: boolean
@@ -45,15 +45,21 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
       try {
         const resp = await subscription.list()
         const subs = resp.data ?? []
-        const active = subs.find(s => s.status === "active" || s.status === "trialing")
+        const active = subs.find((s: any) => s.status === "active" || s.status === "trialing")
         setPlan(active?.plan ?? "free")
       } catch (err) {
         console.error("Error fetching subscription:", err)
-        toast({
-          title: "Error",
-          description: "Failed to load subscription data",
-          variant: "destructive",
-        })
+        // Don't show error toast for the known date error
+        if (err instanceof RangeError && err.message.includes("Invalid time value")) {
+          console.log("Handling known date error in subscription data")
+          setPlan("free") // Default to free plan when there's a date parsing error
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load subscription data",
+            variant: "destructive",
+          })
+        }
       }
     }
     fetchSubscription()
@@ -121,23 +127,40 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     }
   }
 
-  // Launch Stripe Customer Portal
+  // Launch Stripe Customer Portal or Upgrade
   const handlePortal = async () => {
     setIsPortalLoading(true)
     try {
-      // @ts-ignore: upgrade method comes from stripe plugin and may not be typed
-      const result = await (subscription as any).upgrade({
-        plan: 'pro',
-        successUrl: window.location.origin + '/settings',
-        cancelUrl: window.location.origin + '/settings'
-      })
-      const url = result.data?.url
-      if (url) window.location.href = url
+      let result: any
+      if (plan === 'pro') {
+        const { data, error } = await subscription.cancel({
+          returnUrl: new URL('/?settings=true', window.location.origin).toString()
+        });
+
+        if (error) {
+          console.error("Error canceling subscription:", error)
+          throw error;
+        }
+
+        if (data?.url) {
+          window.location.href = data.url;
+        }
+      } else {
+        result = await subscription.upgrade({
+          plan: 'pro',
+          successUrl: new URL('/?settings=true', window.location.origin).toString(),
+          cancelUrl: new URL('/?settings=true', window.location.origin).toString()
+        })
+        const url = result.data?.url
+        if (url) window.location.href = url
+      }
     } catch (err) {
       console.error("Error opening billing portal:", err)
       toast({
         title: "Error",
-        description: "Could not open billing portal",
+        description: plan === 'pro'
+          ? "Could not cancel subscription. Please try again later."
+          : "Could not open billing portal",
         variant: "destructive",
       })
     } finally {
@@ -151,17 +174,49 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         <DialogHeader className="px-4 sm:px-6 pt-4 pb-3 border-b flex-shrink-0">
           <DialogTitle className="text-xl sm:text-2xl font-semibold tracking-tight">Settings</DialogTitle>
         </DialogHeader>
-        
+
         <div className="px-4 sm:px-6 py-4 sm:py-6 space-y-6 sm:space-y-8 overflow-y-auto flex-grow">
           {/* Linked Accounts Section */}
           <LinkedAccountsSection />
 
+          {/* Subscription Section */}
+          <div className="space-y-2 sm:space-y-3">
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Subscription</h2>
+            <div className="flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
+              <div>
+                <p className="text-sm sm:text-base">
+                  Plan: <span className="font-medium">{plan === null ? 'Loading...' : plan === 'pro' ? 'Pro' : 'Free'}</span>
+                </p>
+                {plan === 'pro' && (
+                  <p className="text-xs text-muted-foreground">
+                    You're on Pro — up to 5 workspaces included
+                  </p>
+                )}
+              </div>
+              {session?.user ? (
+                <Button onClick={handlePortal} disabled={plan === null || isPortalLoading}>
+                  {isPortalLoading ? (
+                    <Loader2 className="animate-spin h-4 w-4" />
+                  ) : plan === 'pro' ? (
+                    'Manage Subscription'
+                  ) : (
+                    'Upgrade to Pro'
+                  )}
+                </Button>
+              ) : (
+                <Link href="/api/auth/signin">
+                  <Button>Log in to manage</Button>
+                </Link>
+              )}
+            </div>
+          </div>
+
           {/* Email Alerts Section */}
           <div className="space-y-4 sm:space-y-6">
             <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Email Alerts</h2>
-            
+
             <div className="space-y-3 sm:space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
+              {/* <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
                 <div className="space-y-0.5">
                   <Label className="text-sm sm:text-base font-medium">Reminder notification time</Label>
                   <p className="text-xs sm:text-sm text-muted-foreground">
@@ -206,7 +261,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
+              </div> */}
 
               <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
                 <div className="space-y-0.5">
@@ -246,72 +301,42 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             </div>
           </div>
 
-          {/* Subscription Section */}
-          <div className="space-y-2 sm:space-y-3">
-            <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Subscription</h2>
-            <div className="rounded-lg border bg-muted/5 p-3 sm:p-4 flex flex-col sm:flex-row items-center justify-between space-y-2 sm:space-y-0">
-              <div>
-                <p className="text-sm sm:text-base">
-                  Plan: <span className="font-medium">{plan === null ? 'Loading...' : plan === 'pro' ? 'Pro' : 'Free'}</span>
-                </p>
-                {plan === 'pro' && (
-                  <p className="text-xs text-muted-foreground">
-                    You're on Pro — up to 5 workspaces included
-                  </p>
-                )}
-              </div>
-              {session?.user ? (
-                <Button onClick={handlePortal} disabled={plan === null || isPortalLoading}>
-                  {isPortalLoading ? (
-                    <Loader2 className="animate-spin h-4 w-4" />
-                  ) : plan === 'pro' ? (
-                    'Manage Subscription'
-                  ) : (
-                    'Upgrade to Pro'
-                  )}
-                </Button>
-              ) : (
-                <Link href="/api/auth/signin">
-                  <Button>Log in to manage</Button>
-                </Link>
-              )}
-            </div>
-          </div>
+
 
           {/* Legal Section */}
           <div className="space-y-2 sm:space-y-3">
             <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Legal</h2>
             <div className="space-y-2">
-              <div className="rounded-lg border bg-muted/5 p-3 sm:p-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs sm:text-sm font-medium">Terms of Service</p>
-                  <Link href="/terms" className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
-                    View
-                  </Link>
-                </div>
+
+              <div className="flex justify-between items-center py-2">
+                <p className="text-xs sm:text-sm font-medium">Terms of Service</p>
+                <Link href="/terms" className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
+                  View
+                </Link>
               </div>
-              <div className="rounded-lg border bg-muted/5 p-3 sm:p-4">
-                <div className="flex justify-between items-center">
-                  <p className="text-xs sm:text-sm font-medium">Privacy Policy</p>
-                  <Link href="/privacy" className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
-                    View
-                  </Link>
-                </div>
+
+
+              <div className="flex justify-between items-center py-2">
+                <p className="text-xs sm:text-sm font-medium">Privacy Policy</p>
+                <Link href="/privacy" className="text-xs sm:text-sm text-indigo-600 dark:text-indigo-400 hover:underline" onClick={() => onOpenChange(false)}>
+                  View
+                </Link>
               </div>
+
             </div>
           </div>
         </div>
 
         <div className="flex justify-end items-center gap-3 px-4 sm:px-6 py-3 border-t bg-muted/5 flex-shrink-0">
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={() => onOpenChange(false)}
             className="min-w-[80px] sm:min-w-[100px] text-xs sm:text-sm"
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleSave} 
+          <Button
+            onClick={handleSave}
             disabled={isSaving}
             className="min-w-[80px] sm:min-w-[100px] text-xs sm:text-sm"
           >

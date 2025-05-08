@@ -38,7 +38,7 @@ if (!process.env.STRIPE_PRO_PRICE_ID) {
 }
 
 const stripeClient = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-04-30.basil",
+  apiVersion: "2025-02-24.acacia",
 });
 
 export const auth = betterAuth({
@@ -85,30 +85,25 @@ export const auth = betterAuth({
             name: "pro",
             priceId: process.env.STRIPE_PRO_PRICE_ID!,
             limits: { workspaces: 5 },
-          },
-          // {
-          //   name: "pro",
-          //   priceId: process.env.STRIPE_PRO_PRICE_ID!,
-          //   limits: { workspaces: 5 },
-          // }
+          }
         ],
-        onTrialStart: async (
-          { subscription, user }: { subscription: any; user: any },
-          request: Request
-        ): Promise<void> => {
-          console.log(`[Stripe] Trial started for ${subscription.referenceId}`);
-        },
-        onTrialEnd: async (
-          { subscription, user }: { subscription: any; user: any },
-          request: Request
-        ): Promise<void> => {
-          console.log(`[Stripe] Trial ended for ${subscription.referenceId}`);
-        },
-        onTrialExpired: async (
-          subscription: any
-        ): Promise<void> => {
-          console.log(`[Stripe] Trial expired for ${subscription.referenceId}`);
-        },
+        // onTrialStart: async (
+        //   { subscription, user }: { subscription: any; user: any },
+        //   request: Request
+        // ): Promise<void> => {
+        //   console.log(`[Stripe] Trial started for ${subscription.referenceId}`);
+        // },
+        // onTrialEnd: async (
+        //   { subscription, user }: { subscription: any; user: any },
+        //   request: Request
+        // ): Promise<void> => {
+        //   console.log(`[Stripe] Trial ended for ${subscription.referenceId}`);
+        // },
+        // onTrialExpired: async (
+        //   subscription: any
+        // ): Promise<void> => {
+        //   console.log(`[Stripe] Trial expired for ${subscription.referenceId}`);
+        // },
       }
     })
   ]

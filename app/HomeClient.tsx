@@ -19,6 +19,8 @@ import NewWorkspaceDialog from "@/components/new-workspace-dialog"
 import { toast } from 'sonner'
 import { addTimezoneHeader } from "@/lib/timezone-utils"
 import { DropResult } from '@hello-pangea/dnd'
+import SettingsDialog from "@/components/SettingsDialog"
+import { useSearchParams } from "next/navigation"
 
 interface HomeClientProps {
   initialTodos: Todo[]
@@ -81,8 +83,10 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [currentWorkspace, setCurrentWorkspace] = usePersistentState<string>('currentWorkspace', 'personal')
   const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
+  const [showSettings, setShowSettings] = useState(false)
   const { data: session } = useSession()
   const isMobile = useIsMobile();
+  const searchParams = useSearchParams()
   // Track active subscription plan for workspace limits
   const [activePlan, setActivePlan] = useState<string | null>(null)
 
@@ -349,6 +353,11 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         setActivePlan(activeSub?.plan ?? null)
       } catch (error) {
         console.error("Failed to fetch subscriptions:", error)
+        // Don't show error toast for the known date error
+        if (error instanceof RangeError && error.message.includes("Invalid time value")) {
+          console.log("Handling known date error in subscription data")
+          setActivePlan(null) // Default to null (free plan) when there's a date parsing error
+        }
       }
     })()
   }, [session?.user])
@@ -750,6 +759,13 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     }
   }, [isMobile, todos, session?.user]);
 
+  // Check for 'settings=true' query param to auto-open settings dialog
+  useEffect(() => {
+    if (searchParams.get('settings') === 'true' && session?.user) {
+      setShowSettings(true)
+    }
+  }, [searchParams, session?.user])
+
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="flex flex-row items-center justify-left relative z-10">
@@ -823,26 +839,33 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       </motion.div>
 
       {session?.user && (
-        <NewWorkspaceDialog
-          isOpen={isNewWorkspaceDialogOpen}
-          onClose={() => setIsNewWorkspaceDialogOpen(false)}
-          onSubmit={async (name) => {
-            try {
-              const res = await fetch('/api/workspaces', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name }),
-              });
-              if (res.ok) {
-                const workspace = await res.json();
-                setWorkspaces(prev => [...prev, workspace]);
-                setCurrentWorkspace(workspace.id);
+        <>
+          <NewWorkspaceDialog
+            isOpen={isNewWorkspaceDialogOpen}
+            onClose={() => setIsNewWorkspaceDialogOpen(false)}
+            onSubmit={async (name) => {
+              try {
+                const res = await fetch('/api/workspaces', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ name }),
+                });
+                if (res.ok) {
+                  const workspace = await res.json();
+                  setWorkspaces(prev => [...prev, workspace]);
+                  setCurrentWorkspace(workspace.id);
+                }
+              } catch (error) {
+                console.error('Failed to create workspace:', error);
               }
-            } catch (error) {
-              console.error('Failed to create workspace:', error);
-            }
-          }}
-        />
+            }}
+          />
+          
+          <SettingsDialog
+            open={showSettings}
+            onOpenChange={setShowSettings}
+          />
+        </>
       )}
 
       {/* 
