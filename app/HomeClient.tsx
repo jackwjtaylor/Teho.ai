@@ -804,11 +804,11 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         {/* Desktop Input (at top) */}
         <motion.div
           initial={false}
-          className="w-full mt-1 md:mt-12 hidden md:block"
+          className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'} hidden md:flex`}
         >
           <motion.div
             initial={false}
-            className="w-full sticky top-4 z-10 mb-8"
+            className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky top-4 z-10 mb-8`}
           >
             <AITodoInput onAddTodo={addTodo} />
           </motion.div>
