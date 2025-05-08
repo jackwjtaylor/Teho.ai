@@ -3,8 +3,8 @@ import Redis from "ioredis"
 import { generateText } from "ai"
 import { openai } from "@ai-sdk/openai"
 import { z } from "zod"
-import { todos as todosTable } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { todos as todosTable, subscriptions as subscriptionsTable } from "@/lib/db/schema"
+import { eq, and } from "drizzle-orm"
 import { db } from "@/lib/db"
 
 // Redis for conversation memory
@@ -51,6 +51,61 @@ async function getConversation(conversationId: string) {
   } catch (error) {
     console.error(`❌ Error retrieving conversation data:`, error)
     return null
+  }
+}
+
+/**
+ * Check if a user has a pro plan
+ */
+async function hasProPlan(userId: string): Promise<boolean> {
+  if (!userId) {
+    console.log(`ℹ️ No user ID provided, defaulting to non-pro`)
+    return false
+  }
+  
+  console.log(`🔍 Checking subscription status for user: ${userId}`)
+  try {
+    // Query the subscriptions table for an active subscription
+    const userSubscriptions = await db.select({
+      plan: subscriptionsTable.plan,
+      status: subscriptionsTable.status,
+    })
+    .from(subscriptionsTable)
+    .where(
+      and(
+        eq(subscriptionsTable.referenceId, userId),
+        eq(subscriptionsTable.status, 'active')
+      )
+    )
+    .limit(1)
+    
+    // Check if the user has an active pro subscription
+    if (userSubscriptions.length > 0) {
+      const isPro = userSubscriptions[0].plan.toLowerCase().includes('pro')
+      console.log(`✅ User has ${isPro ? 'pro' : 'non-pro'} subscription (${userSubscriptions[0].plan})`)
+      return isPro
+    }
+    
+    console.log(`ℹ️ No active subscription found for user`)
+    return false
+  } catch (error) {
+    console.error(`❌ Error checking subscription status:`, error)
+    return false
+  }
+}
+
+/**
+ * Get the appropriate model based on the user's subscription status
+ */
+async function getModelForUser(userId: string): Promise<string> {
+  const isPro = await hasProPlan(userId)
+  
+  if (isPro) {
+    console.log(`🚀 Using premium model (gpt-4.1) for pro user`)
+    return 'gpt-4.1'
+  } else {
+    console.log(`📊 Using standard model (gpt-4.1-mini) for non-pro user`)
+    return 'gpt-4.1-mini'
   }
 }
 
@@ -514,10 +569,13 @@ export async function POST(request: NextRequest) {
         assistantMessage += `<still_needed>${missingFields.join(',')}</still_needed>`
       }
     } else {
+      // Get the appropriate model based on the user's subscription
+      const modelName = await getModelForUser(userId)
+      
       // Use AI SDK to generate response
-      console.log(`🤖 Generating response with AI SDK`)
+      console.log(`🤖 Generating response with AI SDK using model: ${modelName}`)
       const { text: generatedMessage } = await generateText({
-        model: openai('gpt-4o'),
+        model: openai(modelName),
         system: contextPrompt,
         prompt: message,
         temperature: 0.2, // Lower temperature for more consistent responses

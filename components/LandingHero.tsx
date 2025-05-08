@@ -461,6 +461,111 @@ export default function LandingHero() {
           </div>
         </div>
       </div>
+
+      {/* Pricing section */}
+      <div className="relative z-10 bg-white/50 dark:bg-[#131316]/50 backdrop-blur-md py-20 border-t border-gray-200/50 dark:border-white/[0.03]">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Simple, Transparent Pricing</h2>
+            <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
+              Choose the plan that fits your needs
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* Free Plan */}
+            <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl p-8 shadow-xl border border-gray-100 dark:border-white/[0.06] transform transition-all duration-300 hover:scale-105">
+              <div className="flex flex-col h-full">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Free</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Perfect for personal use</p>
+                  <div className="mt-4 mb-6">
+                    <span className="text-4xl font-bold text-gray-900 dark:text-white">$0</span>
+                    <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
+                  </div>
+                </div>
+                
+                <ul className="space-y-4 mb-8 flex-grow">
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Up to 3 workspaces</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Add 1 collaborator per workspace</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Basic AI model with limited context</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-green-500 mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Unlimited todos</span>
+                  </li>
+                </ul>
+                
+                <Button
+                  size="lg"
+                  onClick={openAuthDialog}
+                  variant="outline"
+                  className="w-full rounded-xl py-6 text-gray-900 dark:text-white border-gray-300 dark:border-gray-700"
+                >
+                  Get Started Free
+                </Button>
+              </div>
+            </div>
+            
+            {/* Pro Plan */}
+            <div className="relative bg-gradient-to-b from-[#7c5aff]/5 to-[#6c47ff]/5 rounded-2xl p-8 shadow-xl border border-[#7c5aff]/20 dark:border-[#7c5aff]/30 transform transition-all duration-300 hover:scale-105 backdrop-blur-sm">
+              <div className="absolute -top-4 right-8 bg-[#7c5aff] text-white text-sm font-medium px-4 py-1 rounded-full shadow-lg">
+                Popular
+              </div>
+              
+              <div className="flex flex-col h-full">
+                <div className="mb-6">
+                  <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pro</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Enhanced features for teams</p>
+                  <div className="mt-4 mb-6">
+                    <span className="text-4xl font-bold text-[#7c5aff]">$9</span>
+                    <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
+                  </div>
+                </div>
+                
+                <ul className="space-y-4 mb-8 flex-grow">
+                  <li className="flex items-start">
+                    <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Up to 5 workspaces</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Add up to 5 users per workspace</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Advanced AI models with better context understanding</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Priority support</span>
+                  </li>
+                  <li className="flex items-start">
+                    <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
+                    <span className="text-gray-700 dark:text-gray-300">Early access to new features</span>
+                  </li>
+                </ul>
+                
+                <Button
+                  size="lg"
+                  onClick={openAuthDialog}
+                  className="w-full rounded-xl py-6 bg-[#7c5aff] hover:bg-[#6c47ff] text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Upgrade to Pro
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   )
 } 
