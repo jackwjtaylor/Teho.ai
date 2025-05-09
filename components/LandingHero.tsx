@@ -4,7 +4,7 @@ import { useState } from "react"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { Check, ChevronDown, MessageSquare, User, Clock, Slack, Github, Users, PanelRight, BarChart, ArrowRight, CalendarDays, LineChart } from "lucide-react"
+import { Check, ChevronDown, MessageSquare, User, Clock, Slack, Github, Users, PanelRight, BarChart, ArrowRight, CalendarDays, LineChart, ArrowUpRight } from "lucide-react"
 import type { Todo, Comment } from "@/lib/types"
 
 // Simplified types for preview todos
@@ -82,10 +82,10 @@ const formatDate = (dateStr: string) => {
   const dueDate = new Date(dateStr)
   const now = new Date()
   const diffDays = Math.round((dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  
+
   const month = dueDate.toLocaleString('default', { month: 'short' })
   const day = dueDate.getDate()
-  
+
   if (diffDays === 0) return 'Today'
   if (diffDays === 1) return 'Tomorrow'
   if (diffDays < 7) return `${diffDays} days`
@@ -226,8 +226,8 @@ const PreviewTodoItem = ({ todo, expanded = false, className = "" }: { todo: Pre
 }
 
 // Metrics Card component
-const MetricsCard = ({ icon, title, value, subtitle }: { 
-  icon: React.ReactNode; 
+const MetricsCard = ({ icon, title, value, subtitle }: {
+  icon: React.ReactNode;
   title: string;
   value: string;
   subtitle?: string;
@@ -249,9 +249,9 @@ const MetricsCard = ({ icon, title, value, subtitle }: {
 }
 
 // Feature Card component
-const FeatureCard = ({ icon, title, description, planned = false }: { 
-  icon: React.ReactNode; 
-  title: string; 
+const FeatureCard = ({ icon, title, description, planned = false }: {
+  icon: React.ReactNode;
+  title: string;
   description: string;
   planned?: boolean;
 }) => {
@@ -293,7 +293,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-24">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
           {/* Left side - Main content */}
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
@@ -307,7 +307,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                 The world's first intelligent todo list that helps you stay organized, focused, and productive. Just tell agenda what you need to do and it will <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">pull details and context</span> from your email, calendar, and more.
               </p>
             </div>
-            
+
             <div className="flex flex-col sm:flex-row gap-4">
               <Button
                 size="lg"
@@ -319,7 +319,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
               </Button>
             </div>
           </motion.div>
-          
+
           {/* Right side - Interactive demo */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -336,22 +336,22 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                   <div className="w-full h-full p-6 flex flex-col">
                     {/* Metrics row */}
                     <div className="grid grid-cols-3 gap-4 mb-6">
-                      <MetricsCard 
-                        icon={<BarChart className="w-5 h-5 text-[#7c5aff]" />} 
-                        title="Productivity Score" 
-                        value="94%" 
+                      <MetricsCard
+                        icon={<BarChart className="w-5 h-5 text-[#7c5aff]" />}
+                        title="Productivity Score"
+                        value="94%"
                         subtitle="Up 12% from last week"
                       />
-                      <MetricsCard 
-                        icon={<Check className="w-5 h-5 text-[#7c5aff]" />} 
-                        title="Tasks Completed" 
-                        value="28" 
+                      <MetricsCard
+                        icon={<Check className="w-5 h-5 text-[#7c5aff]" />}
+                        title="Tasks Completed"
+                        value="28"
                         subtitle="This week"
                       />
-                      <MetricsCard 
-                        icon={<CalendarDays className="w-5 h-5 text-[#7c5aff]" />} 
-                        title="Next Deadline" 
-                        value="Tomorrow" 
+                      <MetricsCard
+                        icon={<CalendarDays className="w-5 h-5 text-[#7c5aff]" />}
+                        title="Next Deadline"
+                        value="Tomorrow"
                         subtitle="2 urgent tasks"
                       />
                     </div>
@@ -387,7 +387,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                 </div>
               </div>
             </div>
-            
+
             <div className="absolute -bottom-4 -left-4 bg-white dark:bg-[#131316] rounded-xl p-3 shadow-lg border border-gray-200 dark:border-white/[0.06]">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-[#7c5aff]" />
@@ -410,52 +410,59 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
               Powerful task management features designed to boost your productivity
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <FeatureCard
               icon={<Users className="w-6 h-6 text-[#7c5aff]" />}
               title="Workspace Collaboration"
               description="Add team members to workspaces and collaborate on shared todo lists in real-time."
             />
-            
+
             <FeatureCard
               icon={<PanelRight className="w-6 h-6 text-[#7c5aff]" />}
               title="MCP Support"
               description="Full integration with MCP for enhanced workspace management and features."
             />
-            
+
             <FeatureCard
               icon={<Slack className="w-6 h-6 text-[#7c5aff]" />}
               title="Chat Integration"
               description="@agenda in Slack or Discord to create tasks directly from conversation context."
               planned={true}
             />
-            
+
             <FeatureCard
               icon={<Github className="w-6 h-6 text-[#7c5aff]" />}
               title="Issue Tracking"
               description="Auto-create todos from GitHub issues and Linear tickets in dedicated workspaces."
               planned={true}
             />
-            
+
             <FeatureCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#7c5aff]"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>}
               title="Desktop App"
               description="Access your todos from a native desktop experience with offline support and notifications."
               planned={true}
             />
-            
+
             <FeatureCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#7c5aff]"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>}
               title="Mobile App"
               description="Take your todos on the go with our native iOS and Android apps for seamless experience across devices."
               planned={true}
             />
-            
+
             <FeatureCard
               icon={<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6 text-[#7c5aff]"><line x1="4" y1="9" x2="20" y2="9"></line><line x1="4" y1="15" x2="20" y2="15"></line><line x1="10" y1="3" x2="8" y2="21"></line><line x1="16" y1="3" x2="14" y2="21"></line></svg>}
               title="Command View"
               description="Power user interface with keyboard shortcuts and command palette for lightning-fast task management."
+              planned={true}
+            />
+
+            <FeatureCard
+              icon={<ArrowUpRight className="w-6 h-6 text-[#7c5aff]" />}
+              title="Shipping Constant Updates"
+              description={`We're constantly working on new features and improvements to make your experience even better. Last Vercel Deployment: ${Math.floor(Math.random() * 21) + 20} minutes ago`}
               planned={true}
             />
           </div>
@@ -471,7 +478,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
               Choose the plan that fits your needs
             </p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {/* Free Plan */}
             <div className="bg-white dark:bg-[#1A1A1F] rounded-2xl p-8 shadow-xl border border-gray-100 dark:border-white/[0.06] transform transition-all duration-300 hover:scale-105">
@@ -484,7 +491,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                     <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
                   </div>
                 </div>
-                
+
                 <ul className="space-y-4 mb-8 flex-grow">
                   <li className="flex items-start">
                     <span className="text-green-500 mr-2.5 flex-shrink-0 mt-0.5">✓</span>
@@ -503,7 +510,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                     <span className="text-gray-700 dark:text-gray-300">Unlimited todos</span>
                   </li>
                 </ul>
-                
+
                 <Button
                   size="lg"
                   onClick={openAuthDialog}
@@ -514,13 +521,13 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                 </Button>
               </div>
             </div>
-            
+
             {/* Pro Plan */}
             <div className="relative bg-gradient-to-b from-[#7c5aff]/5 to-[#6c47ff]/5 rounded-2xl p-8 shadow-xl border border-[#7c5aff]/20 dark:border-[#7c5aff]/30 transform transition-all duration-300 hover:scale-105 backdrop-blur-sm">
               <div className="absolute -top-4 right-8 bg-[#7c5aff] text-white text-sm font-medium px-4 py-1 rounded-full shadow-lg">
                 Popular
               </div>
-              
+
               <div className="flex flex-col h-full">
                 <div className="mb-6">
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pro</h3>
@@ -530,7 +537,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                     <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
                   </div>
                 </div>
-                
+
                 <ul className="space-y-4 mb-8 flex-grow">
                   <li className="flex items-start">
                     <span className="text-[#7c5aff] mr-2.5 flex-shrink-0 mt-0.5">✓</span>
@@ -553,7 +560,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                     <span className="text-gray-700 dark:text-gray-300">Early access to new features</span>
                   </li>
                 </ul>
-                
+
                 <Button
                   size="lg"
                   onClick={openAuthDialog}
