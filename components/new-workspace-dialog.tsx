@@ -24,6 +24,16 @@ export default function NewWorkspaceDialog({
 }: NewWorkspaceDialogProps) {
   const [name, setName] = React.useState("")
 
+  // Helper to handle creation logic
+  const handleCreate = () => {
+    const trimmed = name.trim();
+    if (trimmed) {
+      onSubmit(trimmed);
+      setName("");
+      onClose();
+    }
+  }
+
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent>
@@ -41,6 +51,13 @@ export default function NewWorkspaceDialog({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleCreate();
+              }
+            }}
             placeholder="Workspace name"
             className="w-full px-3 py-2 bg-gray-100 dark:bg-white/5 rounded-[6px] text-[13px] text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 border border-transparent dark:border-white/[0.08] focus:border-[#7c5aff] dark:focus:border-[#7c5aff] focus:ring-0 outline-none transition-colors"
           />
@@ -54,13 +71,7 @@ export default function NewWorkspaceDialog({
             Cancel
           </Button>
           <Button
-            onClick={() => {
-              if (name.trim()) {
-                onSubmit(name.trim())
-                setName("")
-                onClose()
-              }
-            }}
+            onClick={handleCreate}
             disabled={!name.trim()}
             weight="medium"
           >

@@ -30,10 +30,10 @@ export async function requireSubscription(
     (s) => s.status === "active" || s.status === "trialing"
   );
 
-  // 4) Derive limits: default free users get 2 workspaces
+  // 4) Derive limits: default free users get 3 workspaces
   const limits: PlanLimits = active
-    ? PLAN_LIMITS[active.plan] ?? { workspaces: 2 }
-    : { workspaces: 2 };
+    ? PLAN_LIMITS[active.plan] ?? { workspaces: 3 }
+    : { workspaces: 3 };
 
   // 5) Count existing workspaces
   const existingCount = (

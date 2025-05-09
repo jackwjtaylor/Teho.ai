@@ -44,9 +44,8 @@ export default function WorkspaceSwitcher({
 
   // Helper function to check if workspace can be deleted
   const canDeleteWorkspace = (workspace: Workspace) => {
-    return !todos.some(todo => 
-      todo.workspaceId === workspace.id && !todo.completed
-    )
+    // Only prevent deletion of the Personal workspace
+    return workspace.name !== 'Personal';
   }
 
   return (

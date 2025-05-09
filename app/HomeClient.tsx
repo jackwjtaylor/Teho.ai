@@ -321,7 +321,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     // Set up periodic sync
     const syncInterval = setInterval(() => {
       syncWithServer();
-    }, 60000); // Sync every minute
+    }, 300000); // Sync every 5 minutes
     
     // Clean up interval on unmount
     return () => clearInterval(syncInterval);

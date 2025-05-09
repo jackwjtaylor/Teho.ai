@@ -1,11 +1,5 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build --turbopack",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/check-reminders",
-      "schedule": "* * * * *"
-    }
-  ]
+  "framework": "nextjs"
 } 

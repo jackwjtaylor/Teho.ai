@@ -160,20 +160,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: 'Workspace not found or unauthorized' }, { status: 404 });
     }
 
-    // Check for incomplete todos
-    const incompleteTodos = await db.query.todos.findMany({
-      where: and(
-        eq(todos.workspaceId, workspaceId),
-        eq(todos.completed, false)
-      )
-    });
-
-    if (incompleteTodos.length > 0) {
-      return NextResponse.json({ 
-        error: 'Cannot delete workspace with incomplete todos' 
-      }, { status: 400 });
-    }
-
     // Delete workspace and related data
     await db.transaction(async (tx) => {
       // Delete workspace members first (due to foreign key constraint)
