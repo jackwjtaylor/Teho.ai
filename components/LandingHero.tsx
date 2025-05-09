@@ -273,7 +273,7 @@ const FeatureCard = ({ icon, title, description, planned = false }: {
   )
 }
 
-export default function LandingHero() {
+export default function LandingHero({ usersCount }: { usersCount: number }) {
   const openAuthDialog = () => {
     const loginButton = document.querySelector('button[aria-label="Sign In"]') as HTMLButtonElement
     if (loginButton) {
@@ -314,7 +314,7 @@ export default function LandingHero() {
                 onClick={openAuthDialog}
                 className="bg-[#7c5aff] hover:bg-[#6c47ff] text-white shadow-lg hover:shadow-xl transition-all duration-300 font-medium px-3 py-3 rounded-xl text-lg"
               >
-                <span>Get Started (its free)</span>
+                <span>join {usersCount} others working smarter (its free)</span>
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
@@ -526,7 +526,7 @@ export default function LandingHero() {
                   <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Pro</h3>
                   <p className="text-gray-600 dark:text-gray-400">Enhanced features for teams</p>
                   <div className="mt-4 mb-6">
-                    <span className="text-4xl font-bold text-[#7c5aff]">$9</span>
+                    <span className="text-4xl font-bold text-[#7c5aff]">$7</span>
                     <span className="text-gray-600 dark:text-gray-400 ml-1">/month</span>
                   </div>
                 </div>

@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth"
 import type { Todo } from "@/lib/types"
 import { db } from "@/lib/db"
 import { todos, comments, users, workspaces, workspaceMembers } from "@/lib/db/schema"
-import { eq, and, isNull } from "drizzle-orm"
+import { eq, and, isNull, sql } from "drizzle-orm"
 import { cookies } from "next/headers"
 import { v4 as uuidv4 } from "uuid"
 
@@ -132,9 +132,10 @@ export default async function Home() {
     }
   }
 
+  const getUsers = await db.select({ count: sql`count(*)` }).from(users)
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <HomeClient initialTodos={initialTodos} />
+      <HomeClient initialTodos={initialTodos} usersCount={getUsers[0].count as number} />
     </main>
   )
 }

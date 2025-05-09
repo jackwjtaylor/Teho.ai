@@ -26,6 +26,7 @@ import LandingHero from "@/components/LandingHero"
 
 interface HomeClientProps {
   initialTodos: Todo[]
+  usersCount: number
 }
 
 const usePersistentState = <T,>(key: string, initialValue: T) => {
@@ -78,7 +79,7 @@ const useIsMobile = () => {
   return isMobile;
 };
 
-export default function HomeClient({ initialTodos }: HomeClientProps) {
+export default function HomeClient({ initialTodos, usersCount }: HomeClientProps) {
   const [hasLocalData, setHasLocalData] = useState(false);
   const [todos, setTodos] = usePersistentState<Todo[]>('todos', initialTodos)
   const [showCompleted, setShowCompleted] = usePersistentState('showCompleted', false)
@@ -863,7 +864,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           </div>
         </div>
       ) : (!session?.user && !hasLocalData) ? (
-        <LandingHero />
+        <LandingHero usersCount={usersCount} />
       ) : (
         <motion.div
           layout

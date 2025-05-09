@@ -74,7 +74,9 @@ export default function LoginButton() {
                 localStorage.removeItem('showCompleted')
                 localStorage.removeItem('isTableView')
                 localStorage.removeItem('currentWorkspace')
+                // Sign out and reload to show landing page
                 authClient.signOut()
+                window.location.reload()
               }}
             >
               <LogOut className="h-4 w-4" />
