@@ -11,6 +11,7 @@ const settingsSchema = z.object({
   aiSuggestedReminders: z.boolean(),
   weeklyReview: z.boolean(),
   timezone: z.string().min(1), // Add timezone validation
+  showInputAtBottom: z.boolean(),
 });
 
 export async function GET(req: Request) {
@@ -32,6 +33,7 @@ export async function GET(req: Request) {
         aiSuggestedReminders: false,
         weeklyReview: false,
         timezone: browserTimezone,
+        showInputAtBottom: false,
       });
     }
 
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const { reminderMinutes, aiSuggestedReminders, weeklyReview, timezone } = validationResult.data;
+    const { reminderMinutes, aiSuggestedReminders, weeklyReview, timezone, showInputAtBottom } = validationResult.data;
 
     // Check if settings exist
     const existingSettings = await db.query.userSettings.findFirst({
@@ -78,6 +80,7 @@ export async function POST(req: Request) {
           aiSuggestedReminders,
           weeklyReview,
           timezone,
+          showInputAtBottom,
           updatedAt: new Date(),
         })
         .where(eq(userSettings.userId, session.user.id));
@@ -89,6 +92,7 @@ export async function POST(req: Request) {
         aiSuggestedReminders,
         weeklyReview,
         timezone,
+        showInputAtBottom,
         createdAt: new Date(),
         updatedAt: new Date(),
       });

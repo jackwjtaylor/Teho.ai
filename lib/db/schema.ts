@@ -17,6 +17,7 @@ export const userSettings = pgTable("user_settings", {
     aiSuggestedReminders: boolean('ai_suggested_reminders').notNull().default(false),
     weeklyReview: boolean('weekly_review').notNull().default(false),
     timezone: text('timezone').notNull().default('UTC'),
+    showInputAtBottom: boolean('show_input_at_bottom').notNull().default(false),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow()
 });

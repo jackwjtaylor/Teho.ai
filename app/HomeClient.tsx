@@ -56,25 +56,25 @@ const usePersistentState = <T,>(key: string, initialValue: T) => {
 // Add a custom hook to detect mobile screen size
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false);
-  
+
   useEffect(() => {
     // Check if window is defined (to avoid SSR issues)
     if (typeof window !== 'undefined') {
       const checkMobile = () => {
         setIsMobile(window.innerWidth < 768); // md breakpoint in Tailwind
       };
-      
+
       // Initial check
       checkMobile();
-      
+
       // Add event listener for resize
       window.addEventListener('resize', checkMobile);
-      
+
       // Clean up
       return () => window.removeEventListener('resize', checkMobile);
     }
   }, []);
-  
+
   return isMobile;
 };
 
@@ -96,6 +96,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const [activePlan, setActivePlan] = useState<string | null>(null)
   // Loading state to prevent UI flashing
   const [isLoading, setIsLoading] = useState(true)
+  const [showInputAtBottom, setShowInputAtBottom] = useState(false)
 
   // Check for local todos, but only on the client side
   useEffect(() => {
@@ -112,7 +113,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       }
     }
   }, []);
-  
+
   // 2. Ref for drag-end timeout to avoid stale callbacks
   const dragTimeoutRef = useRef<number | null>(null);
 
@@ -217,6 +218,24 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     }
   }, [workspaces, setCurrentWorkspace, currentWorkspace])
 
+  // Add this effect to fetch the setting
+  useEffect(() => {
+    const fetchInputPosition = async () => {
+      if (!session?.user) return
+      try {
+        const response = await fetch("/api/user/settings", {
+          headers: addTimezoneHeader()
+        })
+        if (!response.ok) return
+        const data = await response.json()
+        setShowInputAtBottom(data.showInputAtBottom)
+      } catch (error) {
+        console.error("Error fetching input position setting:", error)
+      }
+    }
+    fetchInputPosition()
+  }, [session?.user])
+
   // Define the sync function outside the effects so it can be reused
   const syncWithServer = async () => {
     if (!session?.user) return;
@@ -293,7 +312,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       )
 
       setTodos(uniqueTodos)
-      
+
       if (process.env.NODE_ENV !== 'production') {
         console.log('✅ Sync completed successfully');
       }
@@ -313,16 +332,16 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       setIsLoading(false);
     });
   }, [session?.user]); // Only re-run when user session changes
-  
+
   // Periodic sync with server every minute when logged in
   useEffect(() => {
     if (!session?.user) return;
-    
+
     // Set up periodic sync
     const syncInterval = setInterval(() => {
       syncWithServer();
     }, 300000); // Sync every 5 minutes
-    
+
     // Clean up interval on unmount
     return () => clearInterval(syncInterval);
   }, [session?.user]); // Re-establish interval when todos change
@@ -330,7 +349,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   // Load workspaces when session changes
   useEffect(() => {
     if (!session?.user) return;
-    
+
     setIsLoading(true); // Set loading when fetching workspaces
 
     const fetchWorkspaces = async () => {
@@ -374,7 +393,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       setActivePlan(null)
       return
     }
-    ;(async () => {
+    ; (async () => {
       try {
         // Fetch subscriptions and default to empty array if null
         const resp = await subscription.list()
@@ -401,7 +420,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const addTodo = async (todo: Todo) => {
     // Create a temporary client-side ID for optimistic updates using UUID when available
     const tempId = `temp-${crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`}`;
-    
+
     const newTodo = {
       ...todo,
       id: tempId, // Override with our guaranteed unique temp ID
@@ -426,9 +445,9 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           }),
         })
         const serverTodo = await res.json()
-        
+
         // Replace the temporary todo with the server response
-        setTodos(prev => prev.map(t => 
+        setTodos(prev => prev.map(t =>
           t.id === tempId ? { ...serverTodo, comments: [] } : t
         ))
       } catch (error) {
@@ -485,16 +504,16 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
     if (process.env.NODE_ENV !== 'production') {
       console.log('🔄 Applying optimistic update...')
     }
-    
+
     setTodos(prev => {
       const updated = prev.map(todo =>
         todo.id === id ? { ...todo, dueDate: newDate, updatedAt: new Date() } : todo
       )
-      
+
       if (process.env.NODE_ENV !== 'production') {
         console.log('📝 New todos state after optimistic update:', updated)
       }
-      
+
       return updated
     })
 
@@ -502,19 +521,19 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
       if (process.env.NODE_ENV !== 'production') {
         console.log('👤 User is logged in, syncing with server...')
       }
-      
+
       try {
         if (process.env.NODE_ENV !== 'production') {
           console.log('📤 Sending update to server:', { id, dueDate: newDate })
         }
-        
+
         const res = await fetch('/api/todos', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id, dueDate: newDate }),
         })
         const updatedTodo = await res.json()
-        
+
         if (process.env.NODE_ENV !== 'production') {
           console.log('📥 Server response:', updatedTodo)
         }
@@ -524,14 +543,14 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           if (process.env.NODE_ENV !== 'production') {
             console.log('✅ Server update successful, updating state with server response')
           }
-          
+
           setTodos(prev => {
             const updated = prev.map(todo => todo.id === id ? updatedTodo : todo)
-            
+
             if (process.env.NODE_ENV !== 'production') {
               console.log('📝 Final todos state:', updated)
             }
-            
+
             return updated
           })
         } else {
@@ -542,7 +561,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
         }
       } catch (error) {
         console.error('❌ Failed to reschedule todo:', error)
-        
+
         if (process.env.NODE_ENV !== 'production') {
           console.log('⏮️ Reverting to previous state...')
         }
@@ -552,18 +571,18 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           const reverted = prev.map(todo =>
             todo.id === id ? { ...todo, dueDate: todoToUpdate.dueDate } : todo
           )
-          
+
           if (process.env.NODE_ENV !== 'production') {
             console.log('📝 Reverted todos state:', reverted)
           }
-          
+
           return reverted
         })
       }
     } else if (process.env.NODE_ENV !== 'production') {
       console.log('👤 User not logged in, skipping server sync')
     }
-    
+
     if (process.env.NODE_ENV !== 'production') {
       console.log('✨ Reschedule flow complete')
     }
@@ -734,7 +753,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
 
   const handleDragEnd = useCallback((result: DropResult) => {
     if (isMobile) return; // Prevent drag end handling on mobile
-    
+
     const { destination, source, draggableId } = result;
 
     // If there's no destination or the item was dropped in its original position
@@ -855,19 +874,21 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 p-4 bg-gray-100 dark:bg-[#09090B] border-t border-gray-200 dark:border-white/10">
             <AITodoInput onAddTodo={addTodo} />
           </div>
-          
+
           {/* Desktop Input (at top) */}
+          {!showInputAtBottom && (
           <motion.div
             initial={false}
-            className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-12'} hidden md:flex`}
+            className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-1 md:mt-10'} hidden md:flex`}
           >
             <motion.div
               initial={false}
-              className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky top-4 z-10 mb-8`}
+              className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky top-4 z-10`}
             >
               <AITodoInput onAddTodo={addTodo} />
             </motion.div>
-          </motion.div>
+            </motion.div>
+          )}
 
           <AnimatePresence mode="popLayout">
             {filteredTodos.length > 0 && (
@@ -876,7 +897,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
                 transition={{ duration: 0.3 }}
-                className="md:pb-0 mt-4 md:mt-0" // Adjusted padding and added top margin for mobile
+                className={`md:pb-0 mt-4 md:mt-0 ${showInputAtBottom ? 'pt-3' : 'pt-0'}`} // Adjusted padding and added top margin for mobile
               >
                 <TodoList
                   todos={filteredTodos}
@@ -891,6 +912,19 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
               </motion.div>
             )}
           </AnimatePresence>
+          {showInputAtBottom && (
+            <motion.div
+              initial={false}
+              className={`w-full ${filteredTodos.length === 0 ? 'flex-1 flex items-center justify-center' : 'mt-0'} hidden md:flex`}
+          >
+            <motion.div
+              initial={false}
+              className={`${filteredTodos.length === 0 ? 'w-[600px]' : 'w-full'} sticky  z-10`}
+            >
+              <AITodoInput onAddTodo={addTodo} />
+            </motion.div>
+          </motion.div>
+          )}
         </motion.div>
       )}
 
@@ -916,7 +950,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
               }
             }}
           />
-          
+
           <SettingsDialog
             open={showSettings}
             onOpenChange={(open) => {

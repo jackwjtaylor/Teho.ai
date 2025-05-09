@@ -28,9 +28,14 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [currentPrompt, setCurrentPrompt] = useState<string>("")
   const [todoTitle, setTodoTitle] = useState<string>("")
+  const [clickedSuggestion, setClickedSuggestion] = useState<number | null>(null)
+  const [isUrgencyButtonClicked, setIsUrgencyButtonClicked] = useState(false)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const { data: session } = useSession()
+
+  // OS-specific modifier key
+  const modifierKey = "⌘" // Since we know user is on macOS
 
   // Focus the input field on first render
   useEffect(() => {
@@ -38,6 +43,48 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
       inputRef.current.focus()
     }
   }, [])
+
+  // Add keyboard shortcut handler for suggestions
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (!suggestions.length) return;
+      
+      // Check if key pressed is a number between 1-4
+      const num = parseInt(e.key);
+      if (num >= 1 && num <= Math.min(4, suggestions.length)) {
+        e.preventDefault();
+        // Simulate click animation
+        setClickedSuggestion(num - 1);
+        setTimeout(() => {
+          handleSubmit(undefined, suggestions[num - 1].value);
+          setClickedSuggestion(null);
+        }, 150);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [suggestions]);
+
+  // Add cmd/ctrl + return handler for urgency
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (pendingFields.includes("urgency") && pendingFields.length === 1) {
+        if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+          e.preventDefault();
+          // Simulate click animation
+          setIsUrgencyButtonClicked(true);
+          setTimeout(() => {
+            handleFieldSubmit("urgency", urgency.toString());
+            setIsUrgencyButtonClicked(false);
+          }, 150);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [pendingFields, urgency]);
 
   const extractSuggestions = (html: string): Suggestion[] => {
     const suggestionRegex = /<suggestion type="(date|time|datetime)" value="([^"]+)">([^<]+)<\/suggestion>/g
@@ -365,7 +412,13 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                   <motion.button
                     key={index}
                     initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
+                    animate={{ 
+                      opacity: 1, 
+                      scale: clickedSuggestion === index ? 0.95 : 1,
+                      backgroundColor: clickedSuggestion === index ? 
+                        "rgba(124, 90, 255, 0.3)" : 
+                        "rgba(124, 90, 255, 0.1)"
+                    }}
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleSubmit(undefined, suggestion.value)}
@@ -373,7 +426,10 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                   >
                     {suggestion.type === 'date' && <Calendar className="w-3.5 h-3.5" />}
                     {suggestion.type === 'time' && <Clock className="w-3.5 h-3.5" />}
-                    {suggestion.display}
+                    <span className="flex items-center gap-1">
+                      {suggestion.display}
+                      <span className="text-[11px] opacity-60">[{index + 1}]</span>
+                    </span>
                   </motion.button>
                 ))}
                 <form onSubmit={handleSubmit} className="flex items-center">
@@ -384,13 +440,18 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                     placeholder="Or enter manually..."
                     className="px-3 py-1.5 rounded-full text-[13px] bg-gray-100/50 dark:bg-white/5 text-gray-600 dark:text-gray-300 border border-gray-200 dark:border-white/10 placeholder-gray-400 dark:placeholder-gray-500 outline-none focus:border-[#7c5aff]/30 dark:focus:border-[#7c5aff]/40 transition-colors w-[150px]"
                   />
+                  {isProcessing && (
+                    <div className="ml-2">
+                      <IOSpinner />
+                    </div>
+                  )}
                 </form>
               </motion.div>
             )}
           </AnimatePresence>
 
           {/* Secondary input for additional details - moved below suggestions */}
-          <AnimatePresence>
+          {/* <AnimatePresence>
             {isCollectingDetails && !pendingFields.includes("urgency") && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }}
@@ -408,7 +469,7 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                 />
               </motion.div>
             )}
-          </AnimatePresence>
+          </AnimatePresence> */}
 
           {/* Urgency Field - Only show when urgency is the only field needed */}
           <AnimatePresence>
@@ -437,7 +498,13 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
                           e.preventDefault()
-                          handleUrgencySubmit()
+                          if (e.metaKey || e.ctrlKey) {
+                            setIsUrgencyButtonClicked(true);
+                            setTimeout(() => {
+                              handleUrgencySubmit();
+                              setIsUrgencyButtonClicked(false);
+                            }, 150);
+                          }
                         } else if (e.key === "ArrowLeft") {
                           e.preventDefault()
                           incrementUrgency(-0.5)
@@ -453,12 +520,18 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                     >
                       <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                     </button>
-                    <button
+                    <motion.button
                       onClick={handleUrgencySubmit}
-                      className="ml-2 px-4 h-8 bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200"
+                      animate={{ 
+                        scale: isUrgencyButtonClicked ? 0.95 : 1,
+                        background: isUrgencyButtonClicked ? 
+                          "linear-gradient(to bottom, #8f71ff, #7c5aff)" : 
+                          "linear-gradient(to bottom, #7c5aff, #6c47ff)"
+                      }}
+                      className="ml-2 px-4 h-8 rounded-[6px] shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.16),0px_1px_2px_0px_rgba(0,0,0,0.20)] text-white text-[13px] font-medium hover:from-[#8f71ff] hover:to-[#7c5aff] active:from-[#6c47ff] active:to-[#5835ff] transition-all duration-200"
                     >
-                      Set Urgency
-                    </button>
+                      Set Urgency ({modifierKey} + ↵)
+                    </motion.button>
                   </div>
                 </div>
               </motion.div>

@@ -27,7 +27,8 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
     reminderMinutes: 30,
     aiSuggestedReminders: false,
     weeklyReview: false,
-    timezone: getBrowserTimezone()
+    timezone: getBrowserTimezone(),
+    showInputAtBottom: false
   })
   const { data: session } = useSession()
   const [plan, setPlan] = useState<string | null>(null)
@@ -262,52 +263,23 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
             <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Email Alerts</h2>
 
             <div className="space-y-3 sm:space-y-4">
-              {/* <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
-                <div className="space-y-0.5">
-                  <Label className="text-sm sm:text-base font-medium">Reminder notification time</Label>
-                  <p className="text-xs sm:text-sm text-muted-foreground">
-                    Minutes before a todo is due
-                  </p>
-                </div>
-                <Input
-                  id="reminderMinutes"
-                  type="number"
-                  min={1}
-                  value={settings.reminderMinutes}
-                  onChange={(e) => setSettings(prev => ({
-                    ...prev,
-                    reminderMinutes: parseInt(e.target.value) || 30
-                  }))}
-                  className="w-full sm:w-20 h-10 text-right"
-                />
-              </div>
-
               <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
                 <div className="space-y-0.5">
-                  <Label className="text-sm sm:text-base font-medium">Timezone</Label>
+                  <Label className="text-sm sm:text-base font-medium">Input Position</Label>
                   <p className="text-xs sm:text-sm text-muted-foreground">
-                    Your timezone for reminders and due dates
+                    Show the todo input at the bottom of the screen
                   </p>
                 </div>
-                <Select
-                  value={settings.timezone}
-                  onValueChange={(value) => setSettings(prev => ({
-                    ...prev,
-                    timezone: value
-                  }))}
-                >
-                  <SelectTrigger className="w-full sm:w-[240px]">
-                    <SelectValue placeholder="Select timezone" />
-                  </SelectTrigger>
-                  <SelectContent className="max-h-[40vh]">
-                    {timezoneOptions.map((tz) => (
-                      <SelectItem key={tz} value={tz}>
-                        {tz.replace(/_/g, ' ')}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div> */}
+                <div className="pt-1">
+                  <Switch
+                    checked={settings.showInputAtBottom}
+                    onCheckedChange={(checked) => setSettings(prev => ({
+                      ...prev,
+                      showInputAtBottom: checked
+                    }))}
+                  />
+                </div>
+              </div>
 
               <div className="flex flex-col sm:flex-row sm:items-start justify-between py-3 border-t gap-2 sm:gap-0">
                 <div className="space-y-0.5">
