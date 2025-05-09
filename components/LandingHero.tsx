@@ -312,7 +312,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
               <Button
                 size="lg"
                 onClick={openAuthDialog}
-                className="bg-[#7c5aff] hover:bg-[#6c47ff] text-white shadow-lg hover:shadow-xl transition-all duration-300 font-medium px-3 py-3 rounded-xl text-lg"
+                className="bg-[#7c5aff] hover:bg-[#6c47ff] text-white shadow-lg hover:shadow-xl transition-all duration-300 font-medium px-3 py-3 rounded-xl text-md md:text-lg"
               >
                 <span>join {usersCount} others working smarter (its free)</span>
                 <ArrowRight className="ml-2 w-5 h-5" />
@@ -327,7 +327,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
             transition={{ duration: 0.7, delay: 0.2 }}
             className="relative"
           >
-            <div className="relative w-full aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/[0.05]">
+            <div className="relative w-full aspect-video lg:aspect-[4/3] overflow-hidden rounded-2xl shadow-2xl border border-gray-200/50 dark:border-white/[0.05]">
               {/* Main showcase background */}
               <div className="absolute inset-0 bg-gradient-to-br from-purple-50 to-blue-50 dark:from-[#1A1A1F] dark:to-[#131316]">
                 {/* Dashboard visualization */}
@@ -335,7 +335,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
                   {/* Dashboard container */}
                   <div className="w-full h-full p-6 flex flex-col">
                     {/* Metrics row */}
-                    <div className="grid grid-cols-3 gap-4 mb-6">
+                    <div className="hidden md:grid grid-cols-3 gap-4 mb-6">
                       <MetricsCard
                         icon={<BarChart className="w-5 h-5 text-[#7c5aff]" />}
                         title="Productivity Score"
@@ -378,7 +378,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
             </div>
 
             {/* Stats indicators around the dashboard */}
-            <div className="absolute -top-4 -right-4 bg-white dark:bg-[#131316] rounded-xl p-3 shadow-lg border border-gray-200 dark:border-white/[0.06]">
+            <div className="hidden lg:flex absolute -top-4 -right-4 bg-white dark:bg-[#131316] rounded-xl p-3 shadow-lg border border-gray-200 dark:border-white/[0.06]">
               <div className="flex items-center gap-2">
                 <LineChart className="w-5 h-5 text-[#7c5aff]" />
                 <div>
@@ -388,7 +388,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
               </div>
             </div>
 
-            <div className="absolute -bottom-4 -left-4 bg-white dark:bg-[#131316] rounded-xl p-3 shadow-lg border border-gray-200 dark:border-white/[0.06]">
+            <div className="hidden lg:flex absolute -bottom-4 -left-4 bg-white dark:bg-[#131316] rounded-xl p-3 shadow-lg border border-gray-200 dark:border-white/[0.06]">
               <div className="flex items-center gap-2">
                 <Clock className="w-5 h-5 text-[#7c5aff]" />
                 <div>
