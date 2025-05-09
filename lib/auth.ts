@@ -5,6 +5,10 @@ import * as schema from "./db/schema";
 import Stripe from "stripe";
 import { stripe } from "@better-auth/stripe";
 
+// If you are working on local development, comment out any of the auth methods that are not needed for local development.
+
+// These checks are only for production environments.
+
 if (!process.env.DATABASE_URL) {
   throw new Error("DATABASE_URL is not set");
 }
