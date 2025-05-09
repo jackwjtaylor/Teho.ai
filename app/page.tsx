@@ -133,9 +133,10 @@ export default async function Home() {
   }
 
   const getUsers = await db.select({ count: sql`count(*)` }).from(users)
+  const getTodos = await db.select({ count: sql`count(*)` }).from(todos)
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <HomeClient initialTodos={initialTodos} usersCount={getUsers[0].count as number} />
+      <HomeClient initialTodos={initialTodos} usersCount={getUsers[0].count as number} todosCount={getTodos[0].count as number} />
     </main>
   )
 }

@@ -273,7 +273,7 @@ const FeatureCard = ({ icon, title, description, planned = false }: {
   )
 }
 
-export default function LandingHero({ usersCount }: { usersCount: number }) {
+export default function LandingHero({ usersCount, todosCount }: { usersCount: number, todosCount: number }) {
   const openAuthDialog = () => {
     const loginButton = document.querySelector('button[aria-label="Sign In"]') as HTMLButtonElement
     if (loginButton) {
@@ -407,7 +407,7 @@ export default function LandingHero({ usersCount }: { usersCount: number }) {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Agenda?</h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
-              Powerful task management features designed to boost your productivity
+              Over {todosCount} todos created by {usersCount} users, and counting, and the features sell themselves.
             </p>
           </div>
 
