@@ -20,7 +20,7 @@ import { toast } from 'sonner'
 import { addTimezoneHeader } from "@/lib/timezone-utils"
 import { DropResult } from '@hello-pangea/dnd'
 import SettingsDialog from "@/components/SettingsDialog"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import LandingHero from "@/components/LandingHero"
 
@@ -90,6 +90,7 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
   const { data: session } = useSession()
   const isMobile = useIsMobile();
   const searchParams = useSearchParams()
+  const router = useRouter()
   const { resolvedTheme } = useTheme()
   // Track active subscription plan for workspace limits
   const [activePlan, setActivePlan] = useState<string | null>(null)
@@ -918,7 +919,15 @@ export default function HomeClient({ initialTodos }: HomeClientProps) {
           
           <SettingsDialog
             open={showSettings}
-            onOpenChange={setShowSettings}
+            onOpenChange={(open) => {
+              setShowSettings(open);
+              if (!open) {
+                // Remove the settings query parameter when dialog is closed
+                const url = new URL(window.location.href);
+                url.searchParams.delete('settings');
+                window.history.replaceState({}, '', url);
+              }
+            }}
           />
         </>
       )}
