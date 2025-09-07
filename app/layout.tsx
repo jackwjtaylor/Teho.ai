@@ -15,8 +15,8 @@ const outfit = Outfit({
 })
 
 export const metadata: Metadata = {
-  title: "agenda.dev",
-  description: "the world's most powerful todo list",
+  title: "Teho.ai",
+  description: "Goal-driven AI workspace builder",
 }
 
 export default function RootLayout({

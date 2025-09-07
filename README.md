@@ -1,20 +1,23 @@
-# Todo Exon - The World's Fastest Todo App
+# Teho.ai – Goal-Driven Workspace Builder (based on agenda.dev)
 
-A blazingly fast, feature-rich todo application built with Next.js 13+, React, and TypeScript. Features real-time updates, masonry layout, and a beautiful dark mode.
+Teho.ai is a goal-focused planning app that turns high-level outcomes into milestone/task plans and generates initial artifacts in your workspace. It builds on a fork of the agenda.dev codebase (Next.js, React, TypeScript, Postgres), keeping the speed and polish while adding AI-driven planning and storage integrations.
 
 [![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/exon-enterprise/simple-todo)
 
-## Features
+## Features (current)
 
-- ⚡️ Blazing fast performance with Next.js 13+ and React
-- 🎨 Beautiful UI with dark mode support
-- 📱 Fully responsive masonry layout
-- 💾 Local storage sync
-- 🔄 Real-time updates
-- 🎯 PostHog analytics integration
-- 💬 Comment system
-- 🔒 Google authentication
-- 📊 Featurebase feedback integration
+- ⚡️ Fast UI with dark mode
+- 🔒 Google authentication via Better Auth
+- 🗂 Workspaces for organizing items
+- 💬 Comments and reminders (email)
+- 📈 PostHog analytics integration
+
+## In Progress (Teho.ai)
+
+- 🧭 Goal → milestone/task planning (AI)
+- 🗃 Storage adapters (Local zip export, Google Drive)
+- 🧩 Artifacts per task (e.g., plan.md, tasks.md, docs)
+- 🧾 Provenance/manifest tracking
 
 ## Current Items in Implementation:
 
@@ -27,10 +30,10 @@ A blazingly fast, feature-rich todo application built with Next.js 13+, React, a
 - **Language:** TypeScript
 - **Styling:** Tailwind CSS
 - **Database:** PostgreSQL with Drizzle ORM
-- **Authentication:** NextAuth.js
+- **Authentication:** Better Auth (+ Stripe optional)
 - **Analytics:** PostHog
 - **Deployment:** Vercel
-- **Package Manager:** Bun
+- **Package Manager:** npm
 
 ## Getting Started
 
@@ -61,7 +64,7 @@ A blazingly fast, feature-rich todo application built with Next.js 13+, React, a
    cp .env.example .env
    ```
 
-4. Update the environment variables in `.env` with your values
+4. Update the environment variables in `.env` with your values (see `.env.example`)
 
 5. Run the development server:
    ```bash
@@ -75,7 +78,7 @@ A blazingly fast, feature-rich todo application built with Next.js 13+, React, a
 ## Project Structure
 
 ```
-todo-exon/
+teho/
 ├── app/              # Next.js 13+ app directory
 ├── components/       # React components
 ├── lib/             # Utility functions and types
@@ -99,7 +102,7 @@ We welcome contributions! Please follow these steps:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Original agenda.dev is MIT-licensed. This fork retains MIT unless otherwise noted.
 
 ## Acknowledgments
 

@@ -2,8 +2,8 @@ import Link from "next/link"
 import { FaArrowLeft } from "react-icons/fa"
 
 export const metadata = {
-  title: "Terms of Service - agenda.dev",
-  description: "Terms of Service for agenda.dev",
+  title: "Terms of Service - teho.ai",
+  description: "Terms of Service for teho.ai",
 }
 
 export default function TermsPage() {
@@ -13,7 +13,7 @@ export default function TermsPage() {
         <div className="mb-8">
           <Link href="/" className="flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
             <FaArrowLeft className="mr-2" />
-            Back to Agenda
+            Back to Teho
           </Link>
         </div>
         
@@ -27,7 +27,7 @@ export default function TermsPage() {
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">1. Acceptance of Terms</h2>
               <p className="text-gray-700 dark:text-gray-300">
-                By accessing or using agenda.dev, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions, then you may not access or use our services.
+                By accessing or using teho.ai, you agree to be bound by these Terms of Service. If you do not agree to all the terms and conditions, then you may not access or use our services.
               </p>
             </section>
             
@@ -69,7 +69,7 @@ export default function TermsPage() {
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">7. Limitation of Liability</h2>
               <p className="text-gray-700 dark:text-gray-300">
-                In no event shall agenda.dev, its officers, directors, employees, or agents, be liable for any indirect, incidental, special, consequential or punitive damages arising out of or in connection with your use of the service.
+                In no event shall teho.ai, its officers, directors, employees, or agents, be liable for any indirect, incidental, special, consequential or punitive damages arising out of or in connection with your use of the service.
               </p>
             </section>
             
@@ -83,7 +83,7 @@ export default function TermsPage() {
             <section>
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">9. Contact Us</h2>
               <p className="text-gray-700 dark:text-gray-300">
-                If you have any questions about these Terms, please contact us at support@agenda.dev.
+                If you have any questions about these Terms, please contact us at hi@teho.ai.
               </p>
             </section>
           </div>

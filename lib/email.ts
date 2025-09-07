@@ -9,8 +9,8 @@ if (!process.env.RESEND_API_KEY) {
 }
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const FROM_EMAIL = 'hi@agenda.dev';
-const FROM_NAME = 'Agenda';
+const FROM_EMAIL = process.env.FROM_EMAIL || 'hi@teho.ai';
+const FROM_NAME = process.env.FROM_NAME || 'Teho';
 
 export type EmailType = 'reminder' | 'weekly-review';
 

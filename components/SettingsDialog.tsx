@@ -13,6 +13,7 @@ import { getBrowserTimezone, addTimezoneHeader } from "@/lib/timezone-utils"
 import Link from "next/link"
 import LinkedAccountsSection from "./LinkedAccountsSection"
 import { useSession, subscription, authClient } from "@/lib/auth-client"
+import { ExternalLink } from "lucide-react"
 
 interface SettingsDialogProps {
   open: boolean
@@ -33,11 +34,27 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
   const { data: session } = useSession()
   const [plan, setPlan] = useState<string | null>(null)
   const [isPortalLoading, setIsPortalLoading] = useState(false)
+  const [storageProviders, setStorageProviders] = useState<{ provider: string; connected: boolean }[] | null>(null)
 
   // Prefetch settings on mount so dialog opens immediately with data
   useEffect(() => {
     fetchSettings()
   }, [])
+
+  // Fetch storage providers connection status
+  useEffect(() => {
+    const fetchProviders = async () => {
+      try {
+        const res = await fetch('/api/storage/providers')
+        if (!res.ok) return
+        const data = await res.json()
+        setStorageProviders(data.providers || [])
+      } catch (e) {
+        console.error('Failed to fetch storage providers', e)
+      }
+    }
+    if (open) fetchProviders()
+  }, [open])
 
   // Fetch subscription plan when user session is available
   useEffect(() => {
@@ -58,7 +75,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
           toast({
             title: "Error",
             description: "Failed to load subscription data",
-            variant: "destructive",
           })
         }
       }
@@ -90,7 +106,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
       toast({
         title: "Error",
         description: "Failed to load settings. Please try again.",
-        variant: "destructive",
       })
     } finally {
       setIsFetching(false)
@@ -121,7 +136,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
       toast({
         title: "Error",
         description: "Failed to save settings. Please try again.",
-        variant: "destructive",
       })
     } finally {
       setIsSaving(false)
@@ -162,7 +176,6 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
         description: plan === 'pro'
           ? "Could not cancel subscription. Please try again later."
           : "Could not open billing portal",
-        variant: "destructive",
       })
     } finally {
       setIsPortalLoading(false)
@@ -190,7 +203,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
                 </p>
                 {plan === 'pro' && (
                   <p className="text-xs text-muted-foreground">
-                    You're on Pro — up to 5 workspaces included
+                    You&apos;re on Pro — up to 5 workspaces included
                   </p>
                 )}
               </div>
@@ -257,6 +270,25 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
           </div>
 
           <LinkedAccountsSection />
+
+          {/* Storage Section */}
+          <div className="space-y-2 sm:space-y-3">
+            <h2 className="text-lg sm:text-xl font-semibold tracking-tight">Storage</h2>
+            <div className="flex items-center justify-between py-3 border-t">
+              <div>
+                <p className="text-sm sm:text-base">Google Drive</p>
+                <p className="text-xs text-muted-foreground">
+                  {storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'Connected' : 'Not connected'}
+                </p>
+              </div>
+              <Button asChild variant={storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'secondary' : 'default'}>
+                <Link href="/api/storage/connect/gdrive">
+                  {storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'Reconnect' : 'Connect'}
+                  <ExternalLink className="ml-2 h-4 w-4" />
+                </Link>
+              </Button>
+            </div>
+          </div>
 
           {/* Email Alerts Section */}
           <div className="space-y-4 sm:space-y-6">

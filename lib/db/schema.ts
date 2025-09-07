@@ -75,6 +75,28 @@ export const workspaceMembers = pgTable("workspace_members", {
     primaryKey({ columns: [t.workspaceId, t.userId] }),
 ]);
 
+// New: Goals & Planning
+export const goals = pgTable("goals", {
+    id: text('id').primaryKey(),
+    title: text('title').notNull(),
+    description: text('description'),
+    ownerId: text('owner_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    workspaceId: text('workspace_id').references(() => workspaces.id, { onDelete: 'set null' }),
+    status: text('status', { enum: ['draft', 'active', 'completed', 'archived'] }).notNull().default('draft'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const milestones = pgTable("milestones", {
+    id: text('id').primaryKey(),
+    goalId: text('goal_id').notNull().references(() => goals.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    index: integer('index').notNull().default(0),
+    summary: text('summary'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
 export const todos = pgTable("todos", {
     id: text('id').primaryKey(),
     title: text('title').notNull(),
@@ -85,6 +107,13 @@ export const todos = pgTable("todos", {
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
     dueDate: text('due_date'),
     urgency: integer('urgency').notNull().default(1),
+    // New: link tasks to planning hierarchy
+    goalId: text('goal_id').references(() => goals.id, { onDelete: 'set null' }),
+    milestoneId: text('milestone_id').references(() => milestones.id, { onDelete: 'set null' }),
+    // New: assignment and artifact linkage
+    assignee: text('assignee'), // e.g., 'Teho' or user display
+    artifactId: text('artifact_id'),
+    status: text('status', { enum: ['pending', 'review', 'completed'] }).notNull().default('pending'),
 });
 
 export const comments = pgTable("comments", {
@@ -93,6 +122,21 @@ export const comments = pgTable("comments", {
     todoId: text('todo_id').notNull().references(() => todos.id, { onDelete: 'cascade' }),
     userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const artifacts = pgTable("artifacts", {
+    id: text('id').primaryKey(),
+    goalId: text('goal_id').references(() => goals.id, { onDelete: 'cascade' }),
+    milestoneId: text('milestone_id').references(() => milestones.id, { onDelete: 'set null' }),
+    // Do not reference todos here to avoid circular FK; link from app logic if needed
+    type: text('type').notNull(),
+    name: text('name').notNull(),
+    path: text('path'),
+    externalId: text('external_id'),
+    content: text('content'),
+    createdBy: text('created_by', { enum: ['ai', 'user'] }).notNull().default('ai'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
 });
 
 export const reminders = pgTable("reminders", {
@@ -125,3 +169,33 @@ export const subscriptions = pgTable("subscriptions", {
     createdAt: timestamp('created_at').notNull().defaultNow(),
     updatedAt: timestamp('updated_at').notNull().defaultNow(),
   });
+
+export const storageAccounts = pgTable("storage_accounts", {
+    id: text('id').primaryKey(),
+    userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+    provider: text('provider', { enum: ['local', 'gdrive'] }).notNull(),
+    accessToken: text('access_token'),
+    refreshToken: text('refresh_token'),
+    scope: text('scope'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+    updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const storageFiles = pgTable("storage_files", {
+    id: text('id').primaryKey(),
+    storageAccountId: text('storage_account_id').notNull().references(() => storageAccounts.id, { onDelete: 'cascade' }),
+    providerFileId: text('provider_file_id'),
+    path: text('path'),
+    mimeType: text('mime_type'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+});
+
+export const provenanceEvents = pgTable("provenance_events", {
+    id: text('id').primaryKey(),
+    subjectType: text('subject_type', { enum: ['goal', 'task', 'artifact'] }).notNull(),
+    subjectId: text('subject_id').notNull(),
+    eventType: text('event_type').notNull(),
+    payload: text('payload'),
+    actor: text('actor', { enum: ['ai', 'user', 'system'] }).notNull().default('system'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
+});

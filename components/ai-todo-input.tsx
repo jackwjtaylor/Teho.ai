@@ -30,6 +30,9 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
   const [todoTitle, setTodoTitle] = useState<string>("")
   const [clickedSuggestion, setClickedSuggestion] = useState<number | null>(null)
   const [isUrgencyButtonClicked, setIsUrgencyButtonClicked] = useState(false)
+  const [choicePending, setChoicePending] = useState(false)
+  const [choiceProcessing, setChoiceProcessing] = useState(false)
+  const [finalVals, setFinalVals] = useState<{ title: string; date?: string; urgency: number } | null>(null)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const { data: session } = useSession()
@@ -43,6 +46,13 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
       inputRef.current.focus()
     }
   }, [])
+
+  // Detect goal intent via explicit prefix
+  const isGoalIntent = (text: string) => {
+    const trimmed = text.trim()
+    return /^(goal:|\/goal\b|!goal\b)/i.test(trimmed)
+  }
+  const stripGoalPrefix = (text: string) => text.trim().replace(/^(goal:|\/goal\b|!goal\b)\s*/i, '').trim()
 
   // Add keyboard shortcut handler for suggestions
   useEffect(() => {
@@ -123,6 +133,38 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
     
     // Don't submit if empty
     if (!valueToSubmit.trim() && !pendingFields.includes("urgency")) return
+
+    // Goal: if prefixed with goal triggers
+    if (isGoalIntent(valueToSubmit)) {
+      const goalTitle = stripGoalPrefix(valueToSubmit) || valueToSubmit.trim()
+      if (!session?.user) {
+        setCurrentPrompt('Please sign in to create a goal.')
+        return
+      }
+      setIsProcessing(true)
+      try {
+        const res = await fetch('/api/goals', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: goalTitle })
+        })
+        if (!res.ok) throw new Error('Failed to create goal')
+        const goal = await res.json()
+        const planRes = await fetch(`/api/goals/${goal.id}/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+        if (!planRes.ok) throw new Error('Failed to generate plan')
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('teho:goal-planned', { detail: { goalId: goal.id } }))
+        }
+        setCurrentPrompt('Plan created!')
+      } catch (err) {
+        console.error('Goal create/plan error', err)
+        setCurrentPrompt('Something went wrong creating your goal.')
+      } finally {
+        setIsProcessing(false)
+        setInputValue("")
+      }
+      return
+    }
     
     // If we're collecting urgency specifically
     if (pendingFields.includes("urgency") && pendingFields.length === 1) {
@@ -185,26 +227,15 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
         }
       }
       
-      // Check if todo is complete
+      // Check if todo is complete → present choice
       if (data.isComplete) {
-        // Create and add todo
-        const newTodo: Todo = {
-          id: uuidv4(),
+        const fv = {
           title: data.values.title,
-          dueDate: validateAndFormatDate(data.values.date),
+          date: data.values.date,
           urgency: Math.round(parseFloat(data.values.urgency)),
-          completed: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          userId: session?.user?.id || '',
-          comments: [],
-          workspaceId: undefined,
         }
-        
-        onAddTodo(newTodo)
-        
-        // Reset the form
-        setTimeout(resetAndFocus, 500)
+        setFinalVals(fv)
+        setChoicePending(true)
       }
     } catch (error) {
       console.error("❌ Error processing todo:", error)
@@ -270,26 +301,14 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
         }
       }
       
-      // Check if todo is complete
       if (data.isComplete) {
-        // Create and add todo
-        const newTodo: Todo = {
-          id: uuidv4(),
+        const fv = {
           title: data.values.title || collectedValues.title,
-          dueDate: validateAndFormatDate(data.values.date || collectedValues.date),
+          date: data.values.date || collectedValues.date,
           urgency: Math.round(parseFloat(data.values.urgency || collectedValues.urgency)),
-          completed: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          userId: session?.user?.id || '',
-          comments: [],
-          workspaceId: undefined,
         }
-        
-        onAddTodo(newTodo)
-        
-        // Reset the form
-        setTimeout(resetAndFocus, 500)
+        setFinalVals(fv)
+        setChoicePending(true)
       }
     } catch (error) {
       console.error(`❌ Error processing ${field}:`, error)
@@ -338,6 +357,70 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
     }
   }
 
+  // Final choice actions
+  const addToBoardFromFinal = () => {
+    if (!finalVals) return
+    const newTodo: Todo = {
+      id: uuidv4(),
+      title: finalVals.title,
+      dueDate: validateAndFormatDate(finalVals.date),
+      urgency: Math.round(finalVals.urgency),
+      completed: false,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      userId: session?.user?.id || '',
+      comments: [],
+      workspaceId: undefined,
+    }
+    onAddTodo(newTodo)
+    setChoicePending(false)
+    setFinalVals(null)
+    setTimeout(resetAndFocus, 250)
+  }
+
+  const generatePlanFromFinal = async () => {
+    if (!finalVals) return
+    if (!session?.user) {
+      setCurrentPrompt('Please sign in to create a plan.')
+      return
+    }
+    setChoiceProcessing(true)
+    try {
+      // Create goal
+      const res = await fetch('/api/goals', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: finalVals.title, description: finalVals.date ? `Due: ${finalVals.date} | Urgency: ${finalVals.urgency}` : undefined })
+      })
+      if (!res.ok) throw new Error('Failed to create goal')
+      const goal = await res.json()
+      // Generate plan
+      const planRes = await fetch(`/api/goals/${goal.id}/plan`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) })
+      if (!planRes.ok) {
+        const err = await planRes.json().catch(()=>null)
+        throw new Error(err?.error || 'Failed to generate plan')
+      }
+      // Auto-sync if connected
+      try {
+        const p = await fetch('/api/storage/providers').then(r=>r.ok?r.json():{providers:[]})
+        if (p.providers?.find((x: any)=>x.provider==='gdrive' && x.connected)) {
+          await fetch(`/api/goals/${goal.id}/sync-storage`, { method: 'POST' })
+        }
+      } catch {}
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('teho:goal-planned', { detail: { goalId: goal.id } }))
+      }
+      setCurrentPrompt('Plan created!')
+    } catch (err) {
+      console.error('Plan from final error', err)
+      setCurrentPrompt('Something went wrong creating your plan.')
+    } finally {
+      setChoiceProcessing(false)
+      setChoicePending(false)
+      setFinalVals(null)
+      setTimeout(resetAndFocus, 250)
+    }
+  }
+
   return (
     <div className="mb-8">
       <div className="bg-white dark:bg-[#131316] rounded-[12px] shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_32px_64px_-16px_rgba(0,0,0,0.30)] dark:shadow-[0px_16px_32px_-8px_rgba(0,0,0,0.30)] dark:shadow-[0px_8px_16px_-4px_rgba(0,0,0,0.24)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24)] dark:shadow-[0px_-8px_16px_-1px_rgba(0,0,0,0.16)] dark:shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.24)] dark:shadow-[0px_0px_0px_1px_rgba(0,0,0,1.00)] dark:shadow-[inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] dark:shadow-[inset_0px_1px_0px_0px_rgba(255,255,255,0.20)] overflow-hidden transition-colors duration-200" onClick={() => inputRef.current?.focus()}>
@@ -364,7 +447,7 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder="what's on your agenda?"
+                placeholder={"what's on your agenda?"}
                 className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
                 disabled={isProcessing || (pendingFields.includes("urgency") && pendingFields.length === 1)}
               />
@@ -446,6 +529,30 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                     </div>
                   )}
                 </form>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Final choice: add vs plan */}
+          <AnimatePresence>
+            {choicePending && finalVals && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="border-t border-gray-200 dark:border-white/10 pt-4 mt-2"
+              >
+                <div className="flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">{finalVals.title}</span>
+                    {finalVals.date && <span> • Due {new Date(finalVals.date).toLocaleString()}</span>}
+                    <span> • Urgency {finalVals.urgency}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={addToBoardFromFinal} disabled={choiceProcessing} className="px-3 py-1.5 rounded bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 text-sm">Add to board</button>
+                    <button onClick={generatePlanFromFinal} disabled={choiceProcessing} className="px-3 py-1.5 rounded bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] text-white text-sm">Generate plan</button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

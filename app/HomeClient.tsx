@@ -23,6 +23,7 @@ import SettingsDialog from "@/components/SettingsDialog"
 import { useSearchParams, useRouter } from "next/navigation"
 import { useTheme } from "next-themes"
 import LandingHero from "@/components/LandingHero"
+import GoalPlanDialog from "@/components/GoalPlanDialog"
 
 interface HomeClientProps {
   initialTodos: Todo[]
@@ -85,15 +86,19 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
   const [todos, setTodos] = usePersistentState<Todo[]>('todos', initialTodos)
   const [showCompleted, setShowCompleted] = usePersistentState('showCompleted', false)
   const [isTableView, setIsTableView] = usePersistentState('isTableView', false)
+  const [groupByGoal, setGroupByGoal] = usePersistentState('groupByGoal', false)
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
   const [currentWorkspace, setCurrentWorkspace] = usePersistentState<string>('currentWorkspace', 'personal')
   const [isNewWorkspaceDialogOpen, setIsNewWorkspaceDialogOpen] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
+  const [goalDialogOpen, setGoalDialogOpen] = useState(false)
+  const [goalDialogId, setGoalDialogId] = useState<string | null>(null)
   const { data: session } = useSession()
   const isMobile = useIsMobile();
   const searchParams = useSearchParams()
   const router = useRouter()
   const { resolvedTheme } = useTheme()
+  const [goalsMap, setGoalsMap] = useState<Record<string, string>>({})
   // Track active subscription plan for workspace limits
   const [activePlan, setActivePlan] = useState<string | null>(null)
   // Loading state to prevent UI flashing
@@ -197,6 +202,26 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
     }
   }, [session?.user, setTodos, setCurrentWorkspace])
 
+  // Listen for goal planned events to open the dialog
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const ce = e as CustomEvent
+      const id = ce.detail?.goalId as string | undefined
+      if (id) {
+        setGoalDialogId(id)
+        setGoalDialogOpen(true)
+      }
+    }
+    if (typeof window !== 'undefined') {
+      window.addEventListener('teho:goal-planned', handler as any)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('teho:goal-planned', handler as any)
+      }
+    }
+  }, [])
+
   // Add keyboard shortcut handler for workspace switching
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -238,6 +263,24 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
     fetchInputPosition()
   }, [session?.user])
 
+  // Fetch goals for grouping titles
+  useEffect(() => {
+    const fetchGoals = async () => {
+      if (!session?.user) return
+      try {
+        const res = await fetch('/api/goals')
+        if (!res.ok) return
+        const data = await res.json()
+        const map: Record<string, string> = {}
+        ;(data || []).forEach((g: any) => { if (g.id) map[g.id] = g.title })
+        setGoalsMap(map)
+      } catch (e) {
+        console.error('Failed to fetch goals:', e)
+      }
+    }
+    fetchGoals()
+  }, [session?.user])
+
   // Define the sync function outside the effects so it can be reused
   const syncWithServer = async () => {
     if (!session?.user) return;
@@ -247,7 +290,15 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
       }
 
       const res = await fetch('/api/todos');
-      const remoteTodos = await res.json() as Todo[];
+      if (!res.ok) {
+        console.error('Failed to fetch /api/todos:', res.status, res.statusText)
+        return
+      }
+      const remoteTodos = await res.json();
+      if (!Array.isArray(remoteTodos)) {
+        console.error('Unexpected /api/todos response shape:', remoteTodos)
+        return
+      }
 
       // Helper to generate content hash
       const getContentHash = (todo: Todo) =>
@@ -301,7 +352,15 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
 
       // Fetch the latest state from server after all syncs and updates
       const finalRes = await fetch('/api/todos');
-      const finalTodos = (await finalRes.json()) as Todo[];
+      if (!finalRes.ok) {
+        console.error('Failed to fetch final /api/todos:', finalRes.status, finalRes.statusText)
+        return
+      }
+      const finalTodos = await finalRes.json();
+      if (!Array.isArray(finalTodos)) {
+        console.error('Unexpected final /api/todos response shape:', finalTodos)
+        return
+      }
 
       // Dedupe todos by content hash before setting state
       const uniqueTodos = Array.from(
@@ -851,6 +910,17 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
         {session?.user && (
           <CompletedToggle showCompleted={showCompleted} setShowCompleted={setShowCompleted} />
         )}
+        {session?.user && (
+          <button
+            onClick={() => setGroupByGoal(!groupByGoal)}
+            className="h-8 px-3 rounded-full bg-white dark:bg-[#131316] flex items-center gap-2 shadow-[0px_2px_4px_-1px_rgba(0,0,0,0.06)] dark:shadow-[0px_4px_8px_-2px_rgba(0,0,0,0.24),0px_0px_0px_1px_rgba(0,0,0,1.00),inset_0px_0px_0px_1px_rgba(255,255,255,0.08)] transition-colors duration-200"
+            title="Group by goal"
+          >
+            <span className="text-sm text-gray-900 dark:text-white flex items-center">
+              {groupByGoal ? 'Ungroup' : 'Group by goal'}
+            </span>
+          </button>
+        )}
         {/* <ViewToggle isTableView={isTableView} setIsTableView={setIsTableView} /> */}
         <ThemeToggle />
         {!isMobile && <FeedbackWidget />}
@@ -909,7 +979,9 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
                   onDeleteComment={deleteComment}
                   onReschedule={rescheduleTodo}
                   onDragEnd={handleDragEnd}
-                  disableDrag={isMobile} // Pass the isMobile flag to disable drag on mobile
+                  disableDrag={isMobile}
+                  groupByGoal={groupByGoal}
+                  goalTitles={goalsMap}
                 />
               </motion.div>
             )}
@@ -964,6 +1036,12 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
                 window.history.replaceState({}, '', url);
               }
             }}
+          />
+
+          <GoalPlanDialog
+            goalId={goalDialogId}
+            open={goalDialogOpen}
+            onOpenChange={setGoalDialogOpen}
           />
         </>
       )}

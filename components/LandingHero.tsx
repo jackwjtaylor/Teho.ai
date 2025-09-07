@@ -31,7 +31,7 @@ interface PreviewComment {
 const exampleTodos: PreviewTodo[] = [
   {
     id: "example-1",
-    title: "Meet with investors",
+    title: "Meet with investor",
     completed: false,
     dueDate: new Date(Date.now() + 4 * 24 * 60 * 60 * 1000).toISOString(), // 4 days from now
     urgency: 5.0,
@@ -304,7 +304,7 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
                 contextually smart todos <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">for everyone</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 font-light max-w-2xl">
-                The world's first intelligent todo list that helps you stay organized, focused, and productive. Just tell agenda what you need to do and it will <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">pull details and context</span> from your email, calendar, and more.
+                The world&apos;s first intelligent todo list that helps you stay organized, focused, and productive. Just tell agenda what you need to do and it will <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">pull details and context</span> from your email, calendar, and more.
               </p>
             </div>
 
@@ -359,7 +359,7 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
                     {/* Tasks container */}
                     <div className="flex-1 rounded-2xl bg-white/50 dark:bg-black/20 border border-gray-100 dark:border-white/[0.03] p-4 backdrop-blur-sm shadow-sm">
                       <div className="flex justify-between items-center mb-4">
-                        <h3 className="font-medium text-gray-800 dark:text-white">Today's Priority Tasks</h3>
+                        <h3 className="font-medium text-gray-800 dark:text-white">Today&apos;s Priority Tasks</h3>
                         <div className="flex gap-1">
                           <div className="w-2 h-2 rounded-full bg-[#7c5aff]"></div>
                           <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-gray-600"></div>

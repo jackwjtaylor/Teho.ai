@@ -16,6 +16,8 @@ interface TodoListProps {
   onReschedule: (id: string, newDate: string) => void
   onDragEnd: OnDragEndResponder
   disableDrag?: boolean
+  groupByGoal?: boolean
+  goalTitles?: Record<string, string>
 }
 
 interface ScrollableColumnProps {
@@ -281,7 +283,10 @@ const StaticColumn = ({
   );
 };
 
-export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule, onDragEnd, disableDrag = false }: TodoListProps) {
+export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDeleteComment, onReschedule, onDragEnd, disableDrag = false, groupByGoal = false, goalTitles = {} }: TodoListProps) {
+  // track global drag state to disable layout animations (must be before any early return)
+  const [dragActive, setDragActive] = useState(false);
+
   if (todos.length === 0) {
     return null;
   }
@@ -336,9 +341,6 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
     return bucket.map(x => x.todo).sort(sortByDueDate);
   };
 
-  // track global drag state to disable layout animations
-  const [dragActive, setDragActive] = useState(false);
-
   // JSX for rendering todos in a column with enhanced animations
   const renderTodos = (todos: Todo[], columnId: string) => (
     <LayoutGroup id={`column-${columnId}`}>
@@ -390,6 +392,62 @@ export default function TodoList({ todos, onToggle, onDelete, onAddComment, onDe
       </AnimatePresence>
     </LayoutGroup>
   );
+
+  // Group-by-goal mode
+  if (groupByGoal) {
+    // Build buckets by goalId (null/undefined => 'nog')
+    const buckets = new Map<string, Todo[]>();
+    for (const t of todos) {
+      const key = t.goalId || 'nog';
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key)!.push(t);
+    }
+    const sections = Array.from(buckets.entries()).map(([key, list]) => ({
+      key,
+      title: key === 'nog' ? 'Ungrouped' : (goalTitles[key] || 'Goal'),
+      items: list.sort(sortByDueDate),
+    }));
+
+    return (
+      <DragDropContext onDragStart={() => setDragActive(true)} onDragEnd={(result, provided) => { setDragActive(false); onDragEnd(result, provided); }}>
+        <div className="flex flex-col gap-4 h-[calc(100vh-280px)] overflow-y-auto pr-1">
+          {sections.map(section => (
+            <div key={section.key} className="border-b border-gray-200 dark:border-white/10 pb-2">
+              <div className="px-3 py-2 rounded-[10px] bg-white dark:bg-[#131316] border border-black/5 dark:border-white/10 text-sm font-medium text-gray-700 dark:text-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.06)]">
+                {section.title}
+              </div>
+              <Droppable droppableId={`group-${section.key}`}>
+                {(provided) => (
+                  <div ref={provided.innerRef} {...provided.droppableProps} className="mt-2 flex flex-col gap-2 pl-2">
+                    {section.items.map((todo, index) => (
+                      <Draggable key={todo.id} draggableId={todo.id} index={index}>
+                        {(p, snapshot) => (
+                          <div ref={p.innerRef} {...p.draggableProps} {...p.dragHandleProps} className="pl-2 border-l border-gray-200 dark:border-white/10">
+                            <AnimatedTodoItem
+                              todo={todo}
+                              index={index}
+                              onToggle={onToggle}
+                              onDelete={onDelete}
+                              onAddComment={onAddComment}
+                              onDeleteComment={onDeleteComment}
+                              onReschedule={onReschedule}
+                              isDraggingItem={snapshot.isDragging}
+                              isDragActive={dragActive}
+                            />
+                          </div>
+                        )}
+                      </Draggable>
+                    ))}
+                    {provided.placeholder}
+                  </div>
+                )}
+              </Droppable>
+            </div>
+          ))}
+        </div>
+      </DragDropContext>
+    );
+  }
 
   // If drag is disabled (mobile), render the static version
   if (disableDrag) {

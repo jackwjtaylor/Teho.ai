@@ -1,13 +1,17 @@
-# Architecture Overview
+# Architecture Overview (Teho.ai)
 
-High-level diagram and flow description for Teho.ai MVP.
+High-level design for the Teho.ai MVP built on the agenda.dev base.
 
 ## Components
-- Next.js frontend with goal and task management UI.
-- Backend API integrating with Google Drive and Postgres.
+- Next.js frontend (App Router) with goal/milestone/task UI.
+- API routes for AI planning, artifacts, and storage operations.
+- Storage adapters: Local (zip export) and Google Drive.
+- Postgres (Neon) via Drizzle ORM.
+- Better Auth (Google), optional Stripe subscriptions, PostHog.
 
 ## Data Flow
-1. User signs in and selects a goal.
-2. System decomposes goal into milestones and tasks.
-3. Workspace created on Google Drive with plan and tasks docs.
-4. Task progress updates are persisted to Postgres.
+1. User signs in and creates a goal.
+2. Backend calls AI to produce milestones and tasks (validated JSON).
+3. System creates a workspace/folder and initial artifacts (plan.md, tasks.md).
+4. UI lists milestones/tasks with links to artifacts; updates persisted to Postgres.
+5. Provenance events logged; optional reminders via cron + email.

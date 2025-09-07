@@ -9,6 +9,11 @@ export interface Todo {
   comments: Comment[]
   dueDate?: string
   urgency: number
+  goalId?: string
+  milestoneId?: string
+  assignee?: string
+  artifactId?: string
+  status?: 'pending' | 'review' | 'completed'
 }
 
 export interface Comment {

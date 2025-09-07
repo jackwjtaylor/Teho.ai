@@ -2,8 +2,8 @@ import Link from "next/link"
 import { FaArrowLeft } from "react-icons/fa"
 
 export const metadata = {
-  title: "Privacy Policy - agenda.dev",
-  description: "Privacy Policy for agenda.dev",
+  title: "Privacy Policy - Teho.ai",
+  description: "Privacy Policy for Teho.ai",
 }
 
 export default function PrivacyPage() {
@@ -13,7 +13,7 @@ export default function PrivacyPage() {
         <div className="mb-8">
           <Link href="/" className="flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
             <FaArrowLeft className="mr-2" />
-            Back to Agenda
+            Back to Teho
           </Link>
         </div>
         
@@ -27,7 +27,7 @@ export default function PrivacyPage() {
             <section className="mb-6">
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">1. Introduction</h2>
               <p className="text-gray-700 dark:text-gray-300">
-                This Privacy Policy explains how agenda.dev collects, uses, and discloses information about you when you use our services. We respect your privacy and are committed to protecting your personal data.
+                This Privacy Policy explains how Teho.ai collects, uses, and discloses information about you when you use our services. We respect your privacy and are committed to protecting your personal data.
               </p>
             </section>
             
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
             <section>
               <h2 className="text-xl font-semibold mb-3 text-gray-900 dark:text-gray-100">8. Contact Us</h2>
               <p className="text-gray-700 dark:text-gray-300">
-                If you have any questions about this Privacy Policy, please contact us at privacy@agenda.dev.
+                If you have any questions about this Privacy Policy, please contact us at hi@teho.ai
               </p>
             </section>
           </div>

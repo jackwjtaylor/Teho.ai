@@ -101,11 +101,11 @@ async function getModelForUser(userId: string): Promise<string> {
   const isPro = await hasProPlan(userId)
   
   if (isPro) {
-    console.log(`🚀 Using premium model (gpt-4.1) for pro user`)
-    return 'gpt-4.1'
+    console.log(`🚀 Using premium model (gpt-4o) for pro user`)
+    return 'gpt-4o'
   } else {
-    console.log(`📊 Using standard model (gpt-4.1-mini) for non-pro user`)
-    return 'gpt-4.1-mini'
+    console.log(`📊 Using standard model (gpt-4o-mini) for non-pro user`)
+    return 'gpt-4o-mini'
   }
 }
 
@@ -115,12 +115,13 @@ async function getModelForUser(userId: string): Promise<string> {
 async function convertRelativeDate(dateStr: string): Promise<string> {
   console.log(`🗓️ Converting relative date: "${dateStr}"`)
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/convert-date`, {
+    const baseURL = process.env.APP_URL || 'http://localhost:3000'
+    const response = await fetch(`${baseURL}/api/convert-date`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ date: dateStr }),
+      body: JSON.stringify({ text: dateStr }),
     })
 
     if (!response.ok) {

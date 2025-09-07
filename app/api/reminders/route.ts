@@ -160,7 +160,7 @@ export async function POST(req: Request) {
         // Convert the time string using the same date conversion logic
         console.log('⏰ Converting time string:', timeStr);
         const { text: dateResult } = await generateText({
-            model: openai('gpt-4.1-mini'),
+            model: openai('gpt-4o-mini'),
             prompt: `${timeStr}\nUser timezone: ${userTimezone}`,
             system: `### Convert Relative Time Expressions to Specific Date & Time Strings
 

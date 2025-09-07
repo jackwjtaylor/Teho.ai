@@ -454,7 +454,7 @@ export default function CommandPalette({
                                   className="px-4 py-2 flex items-center gap-3 text-[13px] text-gray-900 dark:text-white cursor-pointer rounded-[6px] aria-selected:bg-[#7c5aff]/10 dark:aria-selected:bg-[#7c5aff]/20 hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 outline-none"
                                 >
                                   <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                                  <span>Delete workspace "{workspace.name}"</span>
+                                  <span>Delete workspace &quot;{workspace.name}&quot;</span>
                                 </Command.Item>
                               )
                             })}
@@ -511,7 +511,7 @@ export default function CommandPalette({
                           className="px-4 py-2 flex items-center gap-3 text-[13px] text-gray-900 dark:text-white cursor-pointer rounded-[6px] aria-selected:bg-[#7c5aff]/10 dark:aria-selected:bg-[#7c5aff]/20 hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 outline-none"
                         >
                           <Plus className="w-3.5 h-3.5 text-[#7c5aff]" />
-                          <span>Create "{newWorkspaceName || 'unnamed'}" workspace</span>
+                          <span>Create &quot;{newWorkspaceName || 'unnamed'}&quot; workspace</span>
                         </Command.Item>
                       </div>
                     )}
@@ -755,7 +755,7 @@ export default function CommandPalette({
                           className="px-4 py-2 flex items-center gap-3 text-[13px] text-gray-900 dark:text-white cursor-pointer rounded-[6px] aria-selected:bg-[#7c5aff]/10 dark:aria-selected:bg-[#7c5aff]/20 hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 outline-none"
                         >
                           <Check className="w-3.5 h-3.5 text-green-500" />
-                          <span>Mark "{todoToComplete.title}" as completed</span>
+                          <span>Mark &quot;{todoToComplete.title}&quot; as completed</span>
                         </Command.Item>
                       </Command.Group>
                     )}
@@ -774,7 +774,7 @@ export default function CommandPalette({
                           className="px-4 py-2 flex items-center gap-3 text-[13px] text-gray-900 dark:text-white cursor-pointer rounded-[6px] aria-selected:bg-[#7c5aff]/10 dark:aria-selected:bg-[#7c5aff]/20 hover:bg-gray-100 dark:hover:bg-white/10 transition-all duration-150 outline-none"
                         >
                           <Trash2 className="w-3.5 h-3.5 text-red-500" />
-                          <span>Confirm delete "{workspaceToDelete.name}" workspace</span>
+                          <span>Confirm delete &quot;{workspaceToDelete.name}&quot; workspace</span>
                         </Command.Item>
                       </Command.Group>
                     )}

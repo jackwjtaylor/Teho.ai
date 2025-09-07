@@ -15,7 +15,12 @@ export async function POST(req: Request) {
     });
     
 
-    const { text } = await req.json();
+    // Accept either { text } or legacy { date }
+    const body = await req.json();
+    const text: string | undefined = body?.text ?? body?.date;
+    if (!text || typeof text !== 'string') {
+      return NextResponse.json({ error: 'Missing text' }, { status: 400 });
+    }
     const currentDate = new Date();
     
     const systemPrompt = `### Convert Relative Time Expressions to Specific Date & Time Strings  
@@ -104,7 +109,7 @@ YOU MUST USE THE <TIME></TIME> TAG TO RETURN THE DATE AND TIME. YOU CANNOT USE A
 `;
 
     const { text: result } = await generateText({
-      model: openai('gpt-4.1-mini'),
+      model: openai('gpt-4o-mini'),
       prompt: text,
       system: systemPrompt,
     });

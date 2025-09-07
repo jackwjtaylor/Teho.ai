@@ -287,7 +287,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
 
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center w-[85%]">
+                  <div className="flex items-center w-[85%] gap-2">
                     <p
                       className={`text-[15px] font-normal ${
                         todo.completed ? "line-through text-gray-400 dark:text-white/50" : "text-gray-900 dark:text-white"
@@ -295,6 +295,11 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                     >
                       {todo.title}
                     </p>
+                    {todo.assignee === 'Teho' && todo.status === 'review' && (
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                        Review
+                      </span>
+                    )}
 
                     {todo.comments.length > 0 && (
                       <div className="ml-2 flex items-center text-gray-400 dark:text-white/50">

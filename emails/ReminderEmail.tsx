@@ -100,7 +100,7 @@ export const ReminderEmail: React.FC<ReminderEmailProps> = ({
           </Section>
 
           <Text style={footerText}>
-            This reminder was sent from your Agenda.dev todo list
+            This reminder was sent from your Teho.ai workspace
           </Text>
         </Container>
       </Body>
