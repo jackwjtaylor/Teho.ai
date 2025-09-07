@@ -1,5 +1,10 @@
 {
   "installCommand": "npm install",
   "buildCommand": "npm run build --turbopack",
-  "framework": "nextjs"
-} 
+  "framework": "nextjs",
+  "functions": {
+    "api/drive/**": {
+      "runtime": "nodejs18.x"
+    }
+  }
+}
