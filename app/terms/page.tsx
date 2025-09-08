@@ -1,4 +1,5 @@
 import Link from "next/link"
+import Image from "next/image"
 import { FaArrowLeft } from "react-icons/fa"
 
 export const metadata = {
@@ -10,7 +11,11 @@ export default function TermsPage() {
   return (
     <main className="min-h-screen bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-3xl mx-auto">
-        <div className="mb-8">
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center">
+            <Image src="/teho-logo.png" alt="Teho" width={28} height={28} className="mr-2 rounded" />
+            <span className="text-lg font-medium text-gray-900 dark:text-white">Teho.ai</span>
+          </div>
           <Link href="/" className="flex items-center text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:underline">
             <FaArrowLeft className="mr-2" />
             Back to Teho

@@ -278,7 +278,7 @@ export default function SettingsDialog({ open, onOpenChange }: SettingsDialogPro
               <div>
                 <p className="text-sm sm:text-base">Google Drive</p>
                 <p className="text-xs text-muted-foreground">
-                  {storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'Connected' : 'Not connected'}
+                  {storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'Connected to Google Drive' : 'Not connected'}
                 </p>
               </div>
               <Button asChild variant={storageProviders?.find(p => p.provider === 'gdrive')?.connected ? 'secondary' : 'default'}>

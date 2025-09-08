@@ -447,7 +447,7 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                 type="text"
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                placeholder={"what's on your agenda?"}
+                placeholder={"What do you want to achieve?"}
                 className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
                 disabled={isProcessing || (pendingFields.includes("urgency") && pendingFields.length === 1)}
               />
@@ -463,6 +463,13 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                 </div>
               )}
             </form>
+          )}
+
+          {/* Helper microcopy */}
+          {!isCollectingDetails && !isProcessing && (
+            <div className="mt-2 text-[12px] text-muted-foreground">
+              Press Enter to add • Generate plan to break it down
+            </div>
           )}
 
           {/* Todo title preview */}

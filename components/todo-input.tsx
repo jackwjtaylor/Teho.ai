@@ -132,7 +132,7 @@ export default function TodoInput({ onAddTodo }: { onAddTodo: (todo: Todo) => vo
               value={text}
               onChange={(e) => setText(e.target.value)}
               onKeyDown={handleTextKeyDown}
-              placeholder="what's on your agenda?"
+              placeholder="What do you want to achieve?"
               className="flex-1 bg-transparent border-none outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 text-[15px] transition-colors duration-200"
               disabled={step !== "text"}
             />

@@ -10,7 +10,7 @@ import CompletedToggle from "@/components/completed-toggle"
 import ViewToggle from "@/components/view-toggle"
 import LoginButton from "@/components/LoginButton"
 import FeedbackWidget from "@/components/feedback-widget"
-import AgendaIcon from "@/components/AgendaIcon"
+import Image from "next/image"
 import type { Todo, Comment, Workspace } from "@/lib/types"
 import { motion, AnimatePresence } from "framer-motion"
 import { useSession, subscription } from "@/lib/auth-client"
@@ -881,8 +881,8 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
   return (
     <div className="min-h-screen flex flex-col bg-gray-100 dark:bg-[#09090B] text-gray-900 dark:text-white p-4 transition-colors duration-200">
       <div className="flex flex-row items-center justify-left relative z-10">
-        <AgendaIcon className="w-8 h-8 mr-2" />
-        <h1 className="text-xl hidden md:block">agenda.dev</h1>
+        <Image src="/teho-logo.png" alt="Teho" width={28} height={28} className="mr-2 rounded" />
+        <h1 className="text-xl hidden md:block">Teho.ai</h1>
       </div>
       <div className="absolute top-4 right-4 flex items-center space-x-2 justify-center md:mb-0 md:mx-0 md:justify-start z-20">
         {session?.user && activePlan !== "pro" && !isMobile && (

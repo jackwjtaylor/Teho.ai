@@ -296,7 +296,7 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                       {todo.title}
                     </p>
                     {todo.assignee === 'Teho' && todo.status === 'review' && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
+                      <span title="Teho drafted this. Skim and mark complete." className="text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30">
                         Review
                       </span>
                     )}

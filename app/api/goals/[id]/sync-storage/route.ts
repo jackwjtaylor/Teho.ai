@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { goals, artifacts } from '@/lib/db/schema';
+import { goals, artifacts, todos as todosTable, comments as commentsTable } from '@/lib/db/schema';
 import { and, eq, isNull } from 'drizzle-orm';
+import { v4 as uuidv4 } from 'uuid';
 import { ensureGoalFolder, uploadTextFile } from '@/lib/storage/googleDrive';
 
 export async function POST(req: Request, { params }: { params: { id: string } }) {
@@ -21,11 +22,24 @@ export async function POST(req: Request, { params }: { params: { id: string } })
 
     const toUpload = await db.select().from(artifacts).where(and(eq(artifacts.goalId, goalId), isNull(artifacts.externalId)));
 
-    const uploaded: Array<{ id: string; name: string }> = [];
+    const uploaded: Array<{ id: string; name: string; url?: string }> = [];
     for (const art of toUpload) {
       const fileId = await uploadTextFile(session.user.id, folderId, art.name, art.content || '');
+      const url = `https://drive.google.com/file/d/${fileId}/view?usp=drive_link`;
       await db.update(artifacts).set({ externalId: fileId, path: `/${folderName}/${art.name}` }).where(eq(artifacts.id, art.id));
-      uploaded.push({ id: art.id, name: art.name });
+      uploaded.push({ id: art.id, name: art.name, url });
+
+      // Add a comment to the related todo (if any) with the Drive link
+      const relatedTodo = await db.query.todos.findFirst({ where: eq(todosTable.artifactId, art.id) });
+      if (relatedTodo) {
+        await db.insert(commentsTable).values({
+          id: uuidv4(),
+          text: `Draft synced: ${url}`,
+          todoId: relatedTodo.id,
+          userId: session.user.id,
+          createdAt: new Date(),
+        });
+      }
     }
 
     return NextResponse.json({ success: true, uploaded });
@@ -34,4 +48,3 @@ export async function POST(req: Request, { params }: { params: { id: string } })
     return NextResponse.json({ error: 'Failed to sync storage' }, { status: 500 });
   }
 }
-

@@ -66,7 +66,7 @@ export default function GoalPlanDialog({ goalId, open, onOpenChange }: GoalPlanD
       <DialogContent className="sm:max-w-[800px] w-[calc(100%-24px)] p-0 overflow-hidden">
         <DialogHeader className="px-5 pt-4 pb-2">
           <DialogTitle className="flex items-center gap-2">
-            <Rocket className="h-4 w-4 text-violet-500" /> Plan Overview
+            <Rocket className="h-4 w-4 text-violet-500" /> Plan Ready
           </DialogTitle>
         </DialogHeader>
         {loading ? (
@@ -80,9 +80,7 @@ export default function GoalPlanDialog({ goalId, open, onOpenChange }: GoalPlanD
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold tracking-tight">{details.goal.title}</h2>
-                  {details.goal.description && (
-                    <p className="text-sm text-muted-foreground mt-1">{details.goal.description}</p>
-                  )}
+                  <p className="text-sm text-muted-foreground mt-1">Auto-drafted steps and docs. Teho assigned itself where possible.</p>
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={syncToDrive} disabled={syncing}>
@@ -132,20 +130,23 @@ export default function GoalPlanDialog({ goalId, open, onOpenChange }: GoalPlanD
                 <Separator className="my-2" />
                 <ScrollArea className="max-h-72 pr-2">
                   <ul className="space-y-3">
-                    {details.artifacts.map(a => (
-                      <li key={a.id} className="text-sm">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="font-mono uppercase">{a.type}</Badge>
-                          <span className="font-medium">{a.name}</span>
-                          {a.path ? (
-                            <span className="text-xs text-muted-foreground">— {a.path}</span>
-                          ) : (
-                            <span className="text-xs text-muted-foreground">— not synced</span>
-                          )}
-                          {a.path && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
-                        </div>
-                      </li>
-                    ))}
+                    {details.artifacts.map(a => {
+                      const driveUrl = a && (a as any).externalId ? `https://drive.google.com/file/d/${(a as any).externalId}/view?usp=drive_link` : null
+                      return (
+                        <li key={a.id} className="text-sm">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="font-mono uppercase">{a.type}</Badge>
+                            <span className="font-medium">{a.name}</span>
+                            {driveUrl ? (
+                              <a href={driveUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-indigo-600 dark:text-indigo-400 underline">Open</a>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">Not synced</span>
+                            )}
+                            {driveUrl && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
+                          </div>
+                        </li>
+                      )
+                    })}
                   </ul>
                 </ScrollArea>
               </Card>

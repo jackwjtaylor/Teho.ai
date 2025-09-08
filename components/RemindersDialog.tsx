@@ -138,6 +138,7 @@ export default function RemindersDialog({ open, onOpenChange }: RemindersDialogP
                         variant="ghost"
                         size="icon"
                         onClick={() => handleCancelReminder(reminder.id)}
+                        title="Cancel reminder"
                         className="shrink-0 text-red-500 hover:text-red-600 hover:bg-red-500/10 h-8 w-8 sm:h-9 sm:w-9"
                       >
                         <FaTimes className="w-3 h-3 sm:w-4 sm:h-4" />

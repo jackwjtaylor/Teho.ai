@@ -29,6 +29,21 @@ const parseReminderText = (text: string): {
   return null;
 };
 
+function linkify(text: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, i) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a key={i} href={part} target="_blank" rel="noopener noreferrer" className="text-indigo-600 dark:text-indigo-400 underline break-words">
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 export default function ReminderComment({ text, createdAt }: ReminderCommentProps) {
   const { data: session } = useSession();
   const reminderData = parseReminderText(text);
@@ -37,7 +52,7 @@ export default function ReminderComment({ text, createdAt }: ReminderCommentProp
   if (!reminderData || !session?.user) {
     return (
       <div className="text-[15px] text-gray-700 dark:text-white/80 whitespace-pre-wrap break-words">
-        {text}
+        {linkify(text)}
       </div>
     );
   }

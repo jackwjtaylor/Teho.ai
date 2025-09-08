@@ -57,8 +57,8 @@ if (fs.existsSync('.env.desktop')) {
 } else {
   envLocal = `
 # Desktop app environment variables
-NEXT_PUBLIC_BETTER_AUTH_BASE_URL=https://agenda.dev
-BETTER_AUTH_URL=https://agenda.dev
+NEXT_PUBLIC_BETTER_AUTH_BASE_URL=https://teho.ai
+BETTER_AUTH_URL=https://teho.ai
 ${envLocal}`;
 }
 fs.writeFileSync(path.join(tempDir, '.env.local'), envLocal);
@@ -239,7 +239,7 @@ const indexHtml = `
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Agenda Desktop</title>
+  <title>Teho Desktop</title>
   <script>
     window.location.href = './desktop/';
   </script>
@@ -278,7 +278,7 @@ const indexHtml = `
 </head>
 <body>
   <div class="container">
-    <h1>Agenda</h1>
+    <h1>Teho</h1>
     <p>Loading desktop app...</p>
     <div class="spinner"></div>
   </div>

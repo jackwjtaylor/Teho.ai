@@ -301,10 +301,10 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
           >
             <div>
               <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white mb-6 leading-tight">
-                contextually smart todos <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">for everyone</span>
+                Turn Goals Into <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">Done Work</span>
               </h1>
               <p className="text-xl text-gray-600 dark:text-gray-300 font-light max-w-2xl">
-                The world&apos;s first intelligent todo list that helps you stay organized, focused, and productive. Just tell agenda what you need to do and it will <span className="bg-clip-text text-transparent bg-gradient-to-r from-[#7c5aff] to-[#6c47ff]">pull details and context</span> from your email, calendar, and more.
+                Teho plans your goal into clear steps, drafts what it can, and hands you a clean list to review and ship.
               </p>
             </div>
 
@@ -314,7 +314,7 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
                 onClick={openAuthDialog}
                 className="bg-[#7c5aff] hover:bg-[#6c47ff] text-white shadow-lg hover:shadow-xl transition-all duration-300 font-medium px-3 py-3 rounded-xl text-md md:text-lg"
               >
-                <span>join {usersCount} others working smarter (its free)</span>
+                <span>Start Planning Free</span>
                 <ArrowRight className="ml-2 w-5 h-5" />
               </Button>
             </div>
@@ -405,7 +405,7 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
       <div className="relative z-10 bg-white/70 dark:bg-[#131316]/70 backdrop-blur-md py-20 border-t border-gray-200/50 dark:border-white/[0.03]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Agenda?</h2>
+            <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4">Why Choose Teho?</h2>
             <p className="text-xl text-gray-600 dark:text-gray-400 max-w-3xl mx-auto">
               Over {todosCount} todos created by {usersCount} users, and counting, and the features sell themselves.
             </p>
@@ -427,7 +427,7 @@ export default function LandingHero({ usersCount, todosCount }: { usersCount: nu
             <FeatureCard
               icon={<Slack className="w-6 h-6 text-[#7c5aff]" />}
               title="Chat Integration"
-              description="@agenda in Slack or Discord to create tasks directly from conversation context."
+              description="@teho in Slack or Discord to create tasks directly from conversation context."
               planned={true}
             />
 

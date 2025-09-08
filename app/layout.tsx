@@ -16,7 +16,7 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "Teho.ai",
-  description: "Goal-driven AI workspace builder",
+  description: "Plan goals, draft work, finish faster",
 }
 
 export default function RootLayout({

@@ -58,7 +58,7 @@ export const WeeklyReviewEmail: React.FC<WeeklyReviewEmailProps> = ({
             </Section>
 
             <Button
-              href="https://agenda.dev/analytics"
+              href="https://teho.ai/analytics"
               style={button}
             >
               View Full Analytics
@@ -67,9 +67,9 @@ export const WeeklyReviewEmail: React.FC<WeeklyReviewEmailProps> = ({
             <Hr style={hr} />
             
             <Text style={footer}>
-              Sent by Agenda - Your Supercharged Todo List
+              Sent by Teho — Plan goals, draft work, finish faster
               <br />
-              <Link href="https://agenda.dev/settings" style={unsubscribeLink}>
+              <Link href="https://teho.ai/settings" style={unsubscribeLink}>
                 Update email preferences
               </Link>
             </Text>
