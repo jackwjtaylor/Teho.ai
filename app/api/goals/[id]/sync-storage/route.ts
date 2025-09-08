@@ -32,13 +32,22 @@ export async function POST(req: Request, { params }: { params: { id: string } })
       // Add a comment to the related todo (if any) with the Drive link
       const relatedTodo = await db.query.todos.findFirst({ where: eq(todosTable.artifactId, art.id) });
       if (relatedTodo) {
-        await db.insert(commentsTable).values({
-          id: uuidv4(),
-          text: `Draft synced: ${url}`,
-          todoId: relatedTodo.id,
-          userId: session.user.id,
-          createdAt: new Date(),
-        });
+        const existing = await db.select().from(commentsTable).where(eq(commentsTable.todoId, relatedTodo.id));
+        const draftComment = existing.find(c => (c.text || '').startsWith('Draft created by Teho:'));
+        if (draftComment) {
+          const filename = (art.name || 'draft');
+          await db.update(commentsTable)
+            .set({ text: `Draft created by Teho: ${filename} — Open: ${url}` })
+            .where(eq(commentsTable.id, draftComment.id));
+        } else {
+          await db.insert(commentsTable).values({
+            id: uuidv4(),
+            text: `Draft synced: ${url}`,
+            todoId: relatedTodo.id,
+            userId: session.user.id,
+            createdAt: new Date(),
+          });
+        }
       }
     }
 

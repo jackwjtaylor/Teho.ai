@@ -14,6 +14,8 @@ export interface Todo {
   assignee?: string
   artifactId?: string
   status?: 'pending' | 'review' | 'completed'
+  artifactExternalId?: string
+  artifactPath?: string | null
 }
 
 export interface Comment {

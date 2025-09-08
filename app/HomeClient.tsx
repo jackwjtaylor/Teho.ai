@@ -93,6 +93,7 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
   const [showSettings, setShowSettings] = useState(false)
   const [goalDialogOpen, setGoalDialogOpen] = useState(false)
   const [goalDialogId, setGoalDialogId] = useState<string | null>(null)
+  const [planning, setPlanning] = useState<{ active: boolean; title?: string }>({ active: false })
   const { data: session } = useSession()
   const isMobile = useIsMobile();
   const searchParams = useSearchParams()
@@ -210,6 +211,7 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
       if (id) {
         setGoalDialogId(id)
         setGoalDialogOpen(true)
+        setPlanning({ active: false })
       }
     }
     if (typeof window !== 'undefined') {
@@ -218,6 +220,25 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
     return () => {
       if (typeof window !== 'undefined') {
         window.removeEventListener('teho:goal-planned', handler as any)
+      }
+    }
+  }, [])
+
+  // Planning overlay events
+  useEffect(() => {
+    const started = (e: Event) => {
+      const ce = e as CustomEvent
+      setPlanning({ active: true, title: ce.detail?.title })
+    }
+    const ended = () => setPlanning({ active: false })
+    if (typeof window !== 'undefined') {
+      window.addEventListener('teho:planning-started', started as any)
+      window.addEventListener('teho:planning-ended', ended as any)
+    }
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener('teho:planning-started', started as any)
+        window.removeEventListener('teho:planning-ended', ended as any)
       }
     }
   }, [])
@@ -1004,6 +1025,16 @@ export default function HomeClient({ initialTodos, usersCount, todosCount }: Hom
 
       {session?.user && (
         <>
+          {planning.active && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
+              <div className="rounded-xl bg-white dark:bg-[#131316] shadow-lg border border-black/5 dark:border-white/10 px-6 py-5 flex items-center gap-3">
+                <div className="h-4 w-4 rounded-full border-2 border-gray-400 dark:border-white/50 border-t-transparent animate-spin" />
+                <div className="text-sm text-gray-700 dark:text-gray-200">
+                  Generating plan{planning.title ? ` for “${planning.title}”` : ''}…
+                </div>
+              </div>
+            </div>
+          )}
           <NewWorkspaceDialog
             isOpen={isNewWorkspaceDialogOpen}
             onClose={() => setIsNewWorkspaceDialogOpen(false)}

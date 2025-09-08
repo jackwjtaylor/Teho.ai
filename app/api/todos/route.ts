@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { todos, comments, users, workspaces, workspaceMembers } from '@/lib/db/schema';
+import { todos, comments, users, workspaces, workspaceMembers, artifacts as artifactsTable } from '@/lib/db/schema';
 import { and, eq, or, isNull } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { z } from 'zod';
@@ -99,12 +99,14 @@ export async function GET(req: Request) {
     let query = db.select({
       todos: todos,
       comments: comments,
-      commentUser: users
+      commentUser: users,
+      artifact: artifactsTable,
     })
     .from(todos)
     .where(eq(todos.userId, session.user.id))
     .leftJoin(comments, eq(comments.todoId, todos.id))
-    .leftJoin(users, eq(users.id, comments.userId));
+    .leftJoin(users, eq(users.id, comments.userId))
+    .leftJoin(artifactsTable, eq(artifactsTable.id, todos.artifactId));
 
     // Filter by workspace if provided
     if (workspaceId) {
@@ -112,7 +114,8 @@ export async function GET(req: Request) {
       const userTodos = await db.select({
         todos: todos,
         comments: comments,
-        commentUser: users
+        commentUser: users,
+        artifact: artifactsTable,
       })
       .from(todos)
       .where(and(
@@ -120,7 +123,8 @@ export async function GET(req: Request) {
         eq(todos.workspaceId, workspaceId)
       ))
       .leftJoin(comments, eq(comments.todoId, todos.id))
-      .leftJoin(users, eq(users.id, comments.userId));
+      .leftJoin(users, eq(users.id, comments.userId))
+      .leftJoin(artifactsTable, eq(artifactsTable.id, todos.artifactId));
       
       // Group comments by todo
       const groupedTodos = userTodos.reduce((acc: any[], row) => {
@@ -138,6 +142,8 @@ export async function GET(req: Request) {
         } else {
           acc.push({
             ...row.todos,
+            artifactExternalId: row.artifact?.externalId ?? undefined,
+            artifactPath: row.artifact?.path ?? null,
             comments: row.comments ? [{
               ...row.comments,
               user: row.commentUser ? {
@@ -172,6 +178,8 @@ export async function GET(req: Request) {
       } else {
         acc.push({
           ...row.todos,
+          artifactExternalId: row.artifact?.externalId ?? undefined,
+          artifactPath: row.artifact?.path ?? null,
           comments: row.comments ? [{
             ...row.comments,
             user: row.commentUser ? {
@@ -276,18 +284,22 @@ export async function PUT(req: Request) {
     const updatedTodo = await db.select({
       todos: todos,
       comments: comments,
-      commentUser: users
+      commentUser: users,
+      artifact: artifactsTable,
     })
     .from(todos)
     .where(and(eq(todos.id, id), eq(todos.userId, session.user.id)))
     .leftJoin(comments, eq(comments.todoId, todos.id))
-    .leftJoin(users, eq(users.id, comments.userId));
+    .leftJoin(users, eq(users.id, comments.userId))
+    .leftJoin(artifactsTable, eq(artifactsTable.id, todos.artifactId));
 
     // Format the response similar to GET route
     const formattedTodo = updatedTodo.reduce((acc: any, row) => {
       if (!acc.id) {
         acc = {
           ...row.todos,
+          artifactExternalId: row.artifact?.externalId ?? undefined,
+          artifactPath: row.artifact?.path ?? null,
           comments: []
         };
       }

@@ -557,7 +557,10 @@ export default function AITodoInput({ onAddTodo }: AITodoInputProps) {
                   </div>
                   <div className="flex gap-2">
                     <button onClick={addToBoardFromFinal} disabled={choiceProcessing} className="px-3 py-1.5 rounded bg-gray-100 dark:bg-white/10 hover:bg-gray-200 dark:hover:bg-white/15 text-sm">Add to board</button>
-                    <button onClick={generatePlanFromFinal} disabled={choiceProcessing} className="px-3 py-1.5 rounded bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] text-white text-sm">Generate plan</button>
+                    <button onClick={generatePlanFromFinal} disabled={choiceProcessing} className="px-3 py-1.5 rounded bg-gradient-to-b from-[#7c5aff] to-[#6c47ff] text-white text-sm flex items-center gap-2">
+                      {choiceProcessing && <span className="inline-block h-3 w-3 rounded-full border-2 border-white/60 border-t-transparent animate-spin" />}
+                      {choiceProcessing ? 'Generating…' : 'Generate plan'}
+                    </button>
                   </div>
                 </div>
               </motion.div>

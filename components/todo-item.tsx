@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useRef, type KeyboardEvent, useEffect } from "react"
-import { Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight, RotateCcw, Check } from "lucide-react"
+import { Trash2, ChevronDown, ChevronUp, MessageSquare, User, ArrowRight, RotateCcw, Check, ExternalLink } from "lucide-react"
 import type { Todo, Comment } from "@/lib/types"
 import { formatDate } from "@/lib/utils"
 import { v4 as uuidv4 } from "uuid"
@@ -318,6 +318,18 @@ export default function TodoItem({ todo, onToggle, onDelete, onAddComment, onDel
                           right: '-16px'
                         }}
                       />
+                    )}
+                    {isHovered && todo.artifactId && todo.artifactExternalId && (
+                      <a
+                        href={`https://drive.google.com/file/d/${todo.artifactExternalId}/view?usp=drive_link`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute right-20 text-indigo-600 dark:text-indigo-400 hover:underline z-[2]"
+                        onClick={(e) => e.stopPropagation()}
+                        title="Open draft"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
                     )}
                     {isHovered && (
                       <button
